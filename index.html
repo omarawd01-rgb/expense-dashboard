@@ -25,8 +25,9 @@
 
   <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
 
-    <!-- KPI Metric Cards -->
+    <!-- KPI Metric Cards Grid -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      
       <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
         <span class="text-xs font-semibold uppercase tracking-wider text-emerald-600">Total Income</span>
         <div class="text-3xl font-extrabold text-gray-900 mt-2" id="kpi-total-income">0 EGP</div>
@@ -56,6 +57,7 @@
         <span class="text-xs font-semibold uppercase tracking-wider text-emerald-700">Net After All Expenses</span>
         <div class="text-3xl font-extrabold text-emerald-600 mt-2" id="kpi-net-after">0 EGP</div>
       </div>
+
     </div>
 
     <!-- Charts Section -->
@@ -93,7 +95,7 @@
           </thead>
           <tbody id="table-body" class="divide-y divide-gray-100">
             <tr>
-              <td colspan="3" class="px-6 py-8 text-center text-gray-400">Loading data...</td>
+              <td colspan="3" class="px-6 py-8 text-center text-gray-400">Loading expense sheet...</td>
             </tr>
           </tbody>
         </table>
@@ -110,7 +112,6 @@
   </main>
 
   <script>
-    // Paste your Google Apps Script Web App URL here:
     const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbx6rMQRvEbfn4h9VENhSSQvN2k6fmw5KTw0FSLf0NlIrEjoG-xdhVGJcRmFv6f_ejRW5Q/exec';
 
     let allExpenses = [];
@@ -125,12 +126,6 @@
       const refreshIcon = document.getElementById('refresh-icon');
       refreshIcon.classList.add('animate-spin');
 
-      if (!WEB_APP_URL || WEB_APP_URL === 'https://script.google.com/macros/s/AKfycbx6rMQRvEbfn4h9VENhSSQvN2k6fmw5KTw0FSLf0NlIrEjoG-xdhVGJcRmFv6f_ejRW5Q/exec') {
-        refreshIcon.classList.remove('animate-spin');
-        alert('Please paste your Google Apps Script Web App URL into the WEB_APP_URL variable in index.html.');
-        return;
-      }
-
       try {
         const response = await fetch(`${WEB_APP_URL}?action=getData`);
         const rows = await response.json();
@@ -140,7 +135,7 @@
       } catch (err) {
         refreshIcon.classList.remove('animate-spin');
         console.error(err);
-        alert('Error connecting to Google Sheet Web App.');
+        alert('Error connecting to Google Sheet Web App. Check your network or Apps Script permissions.');
       }
     }
 
@@ -149,7 +144,6 @@
 
       allExpenses = [];
 
-      // Loop through sheet rows starting after header (row index 1 in JS array -> sheet row 2)
       for (let i = 1; i < rows.length; i++) {
         const row = rows[i];
         const isPaid = row[0] === true || String(row[0]).trim().toUpperCase() === 'TRUE';
@@ -168,12 +162,11 @@
 
     async function togglePaidStatus(index) {
       const item = allExpenses[index];
-      item.isPaid = !item.isPaid; // Local instant update
+      item.isPaid = !item.isPaid;
 
       updateMetricsAndCharts();
       renderTable();
 
-      // Send background update directly to Google Sheet
       try {
         await fetch(`${WEB_APP_URL}?action=updateStatus&row=${item.rowIndex}&status=${item.isPaid}`, { mode: 'no-cors' });
       } catch (e) {
