@@ -3,10 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Live Interactive Financial Dashboard</title>
+  <title>Live Interactive Expense Dashboard</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 </head>
 <body class="bg-gray-100 text-gray-800 font-sans min-h-screen pb-12">
 
@@ -14,21 +13,20 @@
   <header class="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-10">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
       <div>
-        <h1 class="text-2xl font-bold text-gray-900">Interactive Expense Dashboard</h1>
-        <p class="text-xs text-gray-500">Connected to Google Sheet ID: <span class="font-mono bg-gray-100 p-1 rounded">1WVnepXIFnqiwd5...</span></p>
+        <h1 class="text-2xl font-bold text-gray-900">Interactive Expense & Income Dashboard</h1>
+        <p class="text-xs text-gray-500">Live 2-Way Sync with Google Sheet</p>
       </div>
       <button onclick="fetchData()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm px-4 py-2 rounded-lg transition-colors shadow flex items-center gap-2">
         <svg id="refresh-icon" class="w-4 h-4 fill-current" viewBox="0 0 20 20"><path d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-.61-1.276z"/></svg>
-        Sync Data
+        Sync Now
       </button>
     </div>
   </header>
 
   <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
 
-    <!-- KPI Metric Cards Grid -->
+    <!-- KPI Metric Cards -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-      
       <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
         <span class="text-xs font-semibold uppercase tracking-wider text-emerald-600">Total Income</span>
         <div class="text-3xl font-extrabold text-gray-900 mt-2" id="kpi-total-income">0 EGP</div>
@@ -58,10 +56,9 @@
         <span class="text-xs font-semibold uppercase tracking-wider text-emerald-700">Net After All Expenses</span>
         <div class="text-3xl font-extrabold text-emerald-600 mt-2" id="kpi-net-after">0 EGP</div>
       </div>
-
     </div>
 
-    <!-- Charts Row -->
+    <!-- Charts Section -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
       <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
         <h2 class="text-lg font-bold text-gray-800 mb-4">Paid vs Remaining Budget</h2>
@@ -73,7 +70,7 @@
       <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
         <h2 class="text-lg font-bold text-gray-800 mb-4">Top Planned Expenses</h2>
         <div class="relative h-64">
-          <canvas id="categoryChart"></canvas>
+          <canvas id="topExpensesChart"></canvas>
         </div>
       </div>
     </div>
@@ -81,7 +78,7 @@
     <!-- Interactive Table Section -->
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
       <div class="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
-        <h2 class="text-base font-bold text-gray-800">Expense Checklist</h2>
+        <h2 class="text-base font-bold text-gray-800">Expenses Checklist</h2>
         <span class="text-xs text-gray-400" id="last-updated">Last sync: --</span>
       </div>
 
@@ -89,14 +86,14 @@
         <table class="w-full text-left text-sm text-gray-600">
           <thead class="bg-gray-100 text-gray-700 uppercase text-xs font-semibold">
             <tr>
-              <th class="px-6 py-3 w-32">Status</th>
-              <th class="px-6 py-3">Description</th>
+              <th class="px-6 py-3 w-36">Status</th>
+              <th class="px-6 py-3">Expense Name</th>
               <th class="px-6 py-3 text-right">Amount</th>
             </tr>
           </thead>
           <tbody id="table-body" class="divide-y divide-gray-100">
             <tr>
-              <td colspan="3" class="px-6 py-8 text-center text-gray-400">Loading expense sheet...</td>
+              <td colspan="3" class="px-6 py-8 text-center text-gray-400">Loading data...</td>
             </tr>
           </tbody>
         </table>
@@ -113,61 +110,57 @@
   </main>
 
   <script>
-    const SPREADSHEET_ID = '1WVnepXIFnqiwd5-ga3huu8vjJHJUHZ0IlkWE_x-pRjc';
-    const CSV_URL = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv`;
-    
-    // Paste your Web App URL from Apps Script deployment here:
-    const WEB_APP_URL = 'YOUR_WEB_APP_URL_HERE';
+    // Paste your Google Apps Script Web App URL here:
+    const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbx6rMQRvEbfn4h9VENhSSQvN2k6fmw5KTw0FSLf0NlIrEjoG-xdhVGJcRmFv6f_ejRW5Q/exec';
 
     let allExpenses = [];
     let totalIncome = 38030;
     let currentPage = 1;
     const pageSize = 15;
 
-    let categoryChartInstance = null;
+    let topExpensesChartInstance = null;
     let paidChartInstance = null;
 
     async function fetchData() {
       const refreshIcon = document.getElementById('refresh-icon');
       refreshIcon.classList.add('animate-spin');
 
-      Papa.parse(CSV_URL, {
-        download: true,
-        header: true,
-        skipEmptyLines: true,
-        complete: function(results) {
-          refreshIcon.classList.remove('animate-spin');
-          parseData(results.data);
-          document.getElementById('last-updated').innerText = `Last sync: ${new Date().toLocaleTimeString()}`;
-        },
-        error: function(err) {
-          refreshIcon.classList.remove('animate-spin');
-          alert('Failed to fetch data.');
-        }
-      });
+      if (!WEB_APP_URL || WEB_APP_URL === 'https://script.google.com/macros/s/AKfycbx6rMQRvEbfn4h9VENhSSQvN2k6fmw5KTw0FSLf0NlIrEjoG-xdhVGJcRmFv6f_ejRW5Q/exec') {
+        refreshIcon.classList.remove('animate-spin');
+        alert('Please paste your Google Apps Script Web App URL into the WEB_APP_URL variable in index.html.');
+        return;
+      }
+
+      try {
+        const response = await fetch(`${WEB_APP_URL}?action=getData`);
+        const rows = await response.json();
+        refreshIcon.classList.remove('animate-spin');
+        parseData(rows);
+        document.getElementById('last-updated').innerText = `Last sync: ${new Date().toLocaleTimeString()}`;
+      } catch (err) {
+        refreshIcon.classList.remove('animate-spin');
+        console.error(err);
+        alert('Error connecting to Google Sheet Web App.');
+      }
     }
 
     function parseData(rows) {
-      if (!rows || rows.length === 0) return;
-
-      const keys = Object.keys(rows[0]);
-      const isPaidKey = keys[0];
-      const descKey = keys[1];
-      const amountKey = keys[2];
+      if (!rows || rows.length < 2) return;
 
       allExpenses = [];
 
-      rows.forEach((row, index) => {
-        const rawAmount = String(row[amountKey] || '0').replace(/[^0-9.-]+/g, "");
+      // Loop through sheet rows starting after header (row index 1 in JS array -> sheet row 2)
+      for (let i = 1; i < rows.length; i++) {
+        const row = rows[i];
+        const isPaid = row[0] === true || String(row[0]).trim().toUpperCase() === 'TRUE';
+        const desc = row[1] || 'Expense Item';
+        const rawAmount = String(row[2] || '0').replace(/[^0-9.-]+/g, "");
         const amount = parseFloat(rawAmount) || 0;
-        const isPaid = String(row[isPaidKey]).trim().toUpperCase() === 'TRUE';
-        const desc = row[descKey] || '-';
 
-        if (amount > 0) {
-          // Store row index (+2 to account for 1-based indexing & sheet header row)
-          allExpenses.push({ rowIndex: index + 2, isPaid, desc, amount });
+        if (amount > 0 || desc !== 'Expense Item') {
+          allExpenses.push({ rowIndex: i + 1, isPaid, desc, amount });
         }
-      });
+      }
 
       updateMetricsAndCharts();
       renderTable();
@@ -175,18 +168,16 @@
 
     async function togglePaidStatus(index) {
       const item = allExpenses[index];
-      item.isPaid = !item.isPaid; // Toggle status locally instantly
+      item.isPaid = !item.isPaid; // Local instant update
 
       updateMetricsAndCharts();
       renderTable();
 
-      // Sync back to Google Sheet if Web App URL is configured
-      if (WEB_APP_URL && WEB_APP_URL !== 'YOUR_WEB_APP_URL_HERE') {
-        try {
-          fetch(`${WEB_APP_URL}?row=${item.rowIndex}&status=${item.isPaid}`, { mode: 'no-cors' });
-        } catch (e) {
-          console.error('Failed to sync to Google Sheet', e);
-        }
+      // Send background update directly to Google Sheet
+      try {
+        await fetch(`${WEB_APP_URL}?action=updateStatus&row=${item.rowIndex}&status=${item.isPaid}`, { mode: 'no-cors' });
+      } catch (e) {
+        console.error('Failed to sync to Google Sheet', e);
       }
     }
 
@@ -211,7 +202,7 @@
       document.getElementById('kpi-net-after').innerText = `${netAfter.toLocaleString()} EGP`;
 
       renderPaidChart(paidSoFar, remaining);
-      renderCategoryChart();
+      renderTopExpensesChart();
     }
 
     function renderTable() {
@@ -221,7 +212,7 @@
       const pageItems = allExpenses.slice(start, end);
 
       if (pageItems.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="3" class="px-6 py-8 text-center text-gray-400">No items found.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="3" class="px-6 py-8 text-center text-gray-400">No expenses recorded.</td></tr>`;
       } else {
         tbody.innerHTML = pageItems.map((r, pageIdx) => {
           const globalIdx = start + pageIdx;
@@ -273,18 +264,18 @@
       });
     }
 
-    function renderCategoryChart() {
-      const ctx = document.getElementById('categoryChart').getContext('2d');
-      if (categoryChartInstance) categoryChartInstance.destroy();
+    function renderTopExpensesChart() {
+      const ctx = document.getElementById('topExpensesChart').getContext('2d');
+      if (topExpensesChartInstance) topExpensesChartInstance.destroy();
 
       const topExpenses = [...allExpenses].sort((a, b) => b.amount - a.amount).slice(0, 5);
 
-      categoryChartInstance = new Chart(ctx, {
+      topExpensesChartInstance = new Chart(ctx, {
         type: 'bar',
         data: {
           labels: topExpenses.map(e => e.desc),
           datasets: [{
-            label: 'Top Expenses (EGP)',
+            label: 'Amount (EGP)',
             data: topExpenses.map(e => e.amount),
             backgroundColor: '#6366F1'
           }]
