@@ -135,7 +135,7 @@
       } catch (err) {
         refreshIcon.classList.remove('animate-spin');
         console.error(err);
-        alert('Error connecting to Google Sheet Web App. Check your network or Apps Script permissions.');
+        alert('Error connecting to Google Sheet Web App.');
       }
     }
 
@@ -146,10 +146,16 @@
 
       for (let i = 1; i < rows.length; i++) {
         const row = rows[i];
+        
+        // Col A = Status
         const isPaid = row[0] === true || String(row[0]).trim().toUpperCase() === 'TRUE';
-        const desc = row[1] || 'Expense Item';
-        const rawAmount = String(row[2] || '0').replace(/[^0-9.-]+/g, "");
+        
+        // Col B = Amount
+        const rawAmount = String(row[1] || '0').replace(/[^0-9.-]+/g, "");
         const amount = parseFloat(rawAmount) || 0;
+        
+        // Col C = Description / Name
+        const desc = row[2] || row[1] || 'Expense Item';
 
         if (amount > 0 || desc !== 'Expense Item') {
           allExpenses.push({ rowIndex: i + 1, isPaid, desc, amount });
