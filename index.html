@@ -183,6 +183,7 @@
   </div>
 
   <script>
+    // Configured Google Apps Script Web App URL
     const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbx6rMQRvEbfn4h9VENhSSQvN2k6fmw5KTw0FSLf0NlIrEjoG-xdhVGJcRmFv6f_ejRW5Q/exec';
 
     let allExpenses = [];
@@ -193,6 +194,7 @@
     let topExpensesChartInstance = null;
     let paidChartInstance = null;
 
+    // JSONP Handler to fetch live data without CORS restrictions
     window.handleSheetData = function(res) {
       const refreshIcon = document.getElementById('refresh-icon');
       if (refreshIcon) refreshIcon.classList.remove('animate-spin');
@@ -204,7 +206,7 @@
 
     function fetchData() {
       const refreshIcon = document.getElementById('refresh-icon');
-      refreshIcon.classList.add('animate-spin');
+      if (refreshIcon) refreshIcon.classList.add('animate-spin');
 
       const existingScript = document.getElementById('jsonp-script');
       if (existingScript) existingScript.remove();
@@ -223,6 +225,8 @@
 
       for (let i = 1; i < rows.length; i++) {
         const row = rows[i];
+        if (!row || row.length < 2) continue;
+
         const col0 = String(row[0] || '').trim();
 
         if (col0.toUpperCase() === 'INCOME') {
@@ -278,7 +282,7 @@
 
     function deleteExpenseRow(index) {
       const item = allExpenses[index];
-      if (!confirm(`Are you sure you want to delete "${item.desc}" (${item.amount.toLocaleString()} EGP)?`)) {
+      if (!confirm(`Are you sure you want to delete "${item.desc}" (${item.amount.toLocaleString('en-US')} EGP)?`)) {
         return;
       }
 
@@ -291,195 +295,4 @@
       };
 
       const script = document.createElement('script');
-      script.src = `${WEB_APP_URL}?action=deleteExpense&row=${item.rowIndex}&callback=handleDeleted`;
-      document.body.appendChild(script);
-    }
-
-    function openEditModal(index) {
-      const item = allExpenses[index];
-      document.getElementById('edit-row-index').value = item.rowIndex;
-      document.getElementById('edit-desc').value = item.desc;
-      document.getElementById('edit-amount').value = item.amount;
-      document.getElementById('edit-modal').classList.remove('hidden');
-    }
-
-    function closeEditModal() {
-      document.getElementById('edit-modal').classList.add('hidden');
-      document.getElementById('edit-entry-form').reset();
-    }
-
-    function submitEditEntry(e) {
-      e.preventDefault();
-      const rowIndex = document.getElementById('edit-row-index').value;
-      const desc = encodeURIComponent(document.getElementById('edit-desc').value);
-      const amount = document.getElementById('edit-amount').value;
-
-      const submitBtn = document.getElementById('edit-submit-btn');
-      submitBtn.innerText = 'Updating...';
-      submitBtn.disabled = true;
-
-      window.handleExpenseEdited = function() {
-        submitBtn.innerText = 'Update Expense';
-        submitBtn.disabled = false;
-        closeEditModal();
-        fetchData();
-      };
-
-      const script = document.createElement('script');
-      script.src = `${WEB_APP_URL}?action=editExpense&row=${rowIndex}&desc=${desc}&amount=${amount}&callback=handleExpenseEdited`;
-      document.body.appendChild(script);
-    }
-
-    function openModal() {
-      document.getElementById('modal').classList.remove('hidden');
-    }
-
-    function closeModal() {
-      document.getElementById('modal').classList.add('hidden');
-      document.getElementById('add-entry-form').reset();
-    }
-
-    function submitNewEntry(e) {
-      e.preventDefault();
-      const type = document.getElementById('entry-type').value;
-      const desc = encodeURIComponent(document.getElementById('entry-desc').value);
-      const amount = document.getElementById('entry-amount').value;
-
-      const submitBtn = document.getElementById('submit-btn');
-      submitBtn.innerText = 'Saving...';
-      submitBtn.disabled = true;
-
-      const action = type === 'income' ? 'addIncome' : 'addExpense';
-      
-      window.handleEntrySaved = function() {
-        submitBtn.innerText = 'Save Entry';
-        submitBtn.disabled = false;
-        closeModal();
-        fetchData();
-      };
-
-      const script = document.createElement('script');
-      script.src = `${WEB_APP_URL}?action=${action}&desc=${desc}&amount=${amount}&callback=handleEntrySaved`;
-      document.body.appendChild(script);
-    }
-
-    function updateMetricsAndCharts() {
-      let expensesPlanned = 0;
-      let paidSoFar = 0;
-
-      allExpenses.forEach(item => {
-        expensesPlanned += item.amount;
-        if (item.isPaid) paidSoFar += item.amount;
-      });
-
-      const remaining = expensesPlanned - paidSoFar;
-      const netNow = totalIncome - paidSoFar;
-      const netAfter = totalIncome - expensesPlanned;
-
-      document.getElementById('kpi-total-income').innerText = `${totalIncome.toLocaleString()} EGP`;
-      document.getElementById('kpi-expenses-planned').innerText = `${expensesPlanned.toLocaleString()} EGP`;
-      document.getElementById('kpi-paid-so-far').innerText = `${paidSoFar.toLocaleString()} EGP`;
-      document.getElementById('kpi-remaining').innerText = `${remaining.toLocaleString()} EGP`;
-      document.getElementById('kpi-net-now').innerText = `${netNow.toLocaleString()} EGP`;
-      document.getElementById('kpi-net-after').innerText = `${netAfter.toLocaleString()} EGP`;
-
-      renderPaidChart(paidSoFar, remaining);
-      renderTopExpensesChart();
-    }
-
-    function renderTable() {
-      const tbody = document.getElementById('table-body');
-      const start = (currentPage - 1) * pageSize;
-      const end = start + pageSize;
-      const pageItems = allExpenses.slice(start, end);
-
-      if (pageItems.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="4" class="px-6 py-8 text-center text-gray-400">No expenses recorded.</td></tr>`;
-      } else {
-        tbody.innerHTML = pageItems.map((r, pageIdx) => {
-          const globalIdx = start + pageIdx;
-          return `
-            <tr class="hover:bg-gray-50 transition-colors">
-              <td class="px-6 py-4">
-                <label class="inline-flex items-center gap-2 cursor-pointer">
-                  <input type="checkbox" ${r.isPaid ? 'checked' : ''} onchange="togglePaidStatus(${globalIdx})" class="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500">
-                  <span class="text-xs font-semibold px-2 py-0.5 rounded ${r.isPaid ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}">
-                    ${r.isPaid ? 'PAID' : 'PENDING'}
-                  </span>
-                </label>
-              </td>
-              <td class="px-6 py-4 text-gray-800 font-medium ${r.isPaid ? 'line-through text-gray-400' : ''}">${r.desc}</td>
-              <td class="px-6 py-4 text-right font-semibold text-gray-900">${r.amount.toLocaleString()} EGP</td>
-              <td class="px-6 py-4 text-center flex justify-center items-center gap-2">
-                <button onclick="openEditModal(${globalIdx})" class="text-indigo-600 hover:text-indigo-800 p-1 hover:bg-indigo-50 rounded transition-colors" title="Edit Expense">
-                  <svg class="w-4 h-4 fill-current" viewBox="0 0 20 20"><path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/></svg>
-                </button>
-                <button onclick="deleteExpenseRow(${globalIdx})" class="text-rose-500 hover:text-rose-700 p-1 hover:bg-rose-50 rounded transition-colors" title="Delete Expense">
-                  <svg class="w-4 h-4 fill-current" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
-                </button>
-              </td>
-            </tr>
-          `;
-        }).join('');
-      }
-
-      document.getElementById('page-info').innerText = `Showing ${allExpenses.length === 0 ? 0 : start + 1}-${Math.min(end, allExpenses.length)} of ${allExpenses.length}`;
-      document.getElementById('prev-btn').disabled = currentPage === 1;
-      document.getElementById('next-btn').disabled = end >= allExpenses.length;
-    }
-
-    function changePage(direction) {
-      currentPage += direction;
-      renderTable();
-    }
-
-    function renderPaidChart(paid, remaining) {
-      const ctx = document.getElementById('paidChart').getContext('2d');
-      if (paidChartInstance) paidChartInstance.destroy();
-
-      paidChartInstance = new Chart(ctx, {
-        type: 'doughnut',
-        data: {
-          labels: ['Paid So Far', 'Remaining Expenses'],
-          datasets: [{
-            data: [paid, remaining],
-            backgroundColor: ['#3B82F6', '#F59E0B']
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: { legend: { position: 'bottom' } }
-        }
-      });
-    }
-
-    function renderTopExpensesChart() {
-      const ctx = document.getElementById('topExpensesChart').getContext('2d');
-      if (topExpensesChartInstance) topExpensesChartInstance.destroy();
-
-      const topExpenses = [...allExpenses].slice(0, 5);
-
-      topExpensesChartInstance = new Chart(ctx, {
-        type: 'bar',
-        data: {
-          labels: topExpenses.map(e => e.desc),
-          datasets: [{
-            label: 'Amount (EGP)',
-            data: topExpenses.map(e => e.amount),
-            backgroundColor: '#6366F1'
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: { legend: { display: false } },
-          scales: { y: { beginAtZero: true } }
-        }
-      });
-    }
-
-    fetchData();
-  </script>
-</body>
-</html>
+      script.src = `${
