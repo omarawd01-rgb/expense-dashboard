@@ -8,17 +8,17 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Chart.js CDN -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <!-- PapaParse CDN for parsing CSV -->
+  <!-- PapaParse CDN -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 </head>
-<body class="bg-gray-100 text-gray-800 font-sans min-h-screen">
+<body class="bg-gray-100 text-gray-800 font-sans min-h-screen pb-12">
 
   <!-- Header -->
-  <header class="bg-white shadow-sm border-b border-gray-200">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+  <header class="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-10">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
       <div>
         <h1 class="text-2xl font-bold text-gray-900">Expense Analytics Dashboard</h1>
-        <p class="text-sm text-gray-500">Connected to Google Sheet ID: <span class="font-mono text-xs bg-gray-100 p-1 rounded">1WVnepXIFnqiwd5...</span></p>
+        <p class="text-xs text-gray-500">Connected to Google Sheet ID: <span class="font-mono bg-gray-100 p-1 rounded">1WVnepXIFnqiwd5...</span></p>
       </div>
       <button onclick="fetchData()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm px-4 py-2 rounded-lg transition-colors shadow flex items-center gap-2">
         <svg id="refresh-icon" class="w-4 h-4 fill-current" viewBox="0 0 20 20"><path d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z"/></svg>
@@ -36,7 +36,7 @@
         <div class="text-3xl font-extrabold text-gray-900 mt-2" id="total-expenses">$0.00</div>
       </div>
       <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-        <span class="text-xs font-semibold uppercase tracking-wider text-gray-400">Total Transactions</span>
+        <span class="text-xs font-semibold uppercase tracking-wider text-gray-400">Filtered Transactions</span>
         <div class="text-3xl font-extrabold text-indigo-600 mt-2" id="total-count">0</div>
       </div>
       <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
@@ -47,15 +47,13 @@
 
     <!-- Charts Row -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-      <!-- Category Chart -->
       <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-        <h2 class="text-lg font-bold text-gray-800 mb-4">Expenses by Category</h2>
+        <h2 class="text-lg font-bold text-gray-800 mb-4">Expenses Breakdown</h2>
         <div class="relative h-64">
           <canvas id="categoryChart"></canvas>
         </div>
       </div>
 
-      <!-- Trend Chart -->
       <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
         <h2 class="text-lg font-bold text-gray-800 mb-4">Spending Over Time</h2>
         <div class="relative h-64">
@@ -64,15 +62,23 @@
       </div>
     </div>
 
-    <!-- Data Table -->
+    <!-- Interactive Data Table -->
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-      <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center">
-        <h2 class="text-lg font-bold text-gray-800">Recent Transactions</h2>
-        <span class="text-xs text-gray-400" id="last-updated">Last sync: --</span>
+      
+      <!-- Table Controls / Filters -->
+      <div class="p-4 border-b border-gray-100 flex flex-col md:flex-row justify-between items-center gap-4 bg-gray-50">
+        <div class="flex flex-wrap items-center gap-3 w-full md:w-auto">
+          <input type="text" id="search-input" placeholder="Search descriptions..." oninput="applyFilters()" class="px-3 py-2 border border-gray-300 rounded-lg text-sm w-full sm:w-64 focus:ring-2 focus:ring-indigo-500 outline-none">
+          <select id="category-filter" onchange="applyFilters()" class="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-indigo-500 outline-none">
+            <option value="ALL">All Categories</option>
+          </select>
+        </div>
+        <span class="text-xs text-gray-400 whitespace-nowrap" id="last-updated">Last sync: --</span>
       </div>
+
       <div class="overflow-x-auto">
         <table class="w-full text-left text-sm text-gray-600">
-          <thead class="bg-gray-50 text-gray-700 uppercase text-xs font-semibold">
+          <thead class="bg-gray-100 text-gray-700 uppercase text-xs font-semibold">
             <tr id="table-head">
               <th class="px-6 py-3">Date</th>
               <th class="px-6 py-3">Category</th>
@@ -87,12 +93,26 @@
           </tbody>
         </table>
       </div>
+
+      <!-- Pagination Footer -->
+      <div class="px-6 py-4 border-t border-gray-100 flex justify-between items-center bg-gray-50 text-sm text-gray-500">
+        <span id="page-info">Showing 0-0 of 0</span>
+        <div class="flex gap-2">
+          <button id="prev-btn" onclick="changePage(-1)" class="px-3 py-1 bg-white border border-gray-300 rounded hover:bg-gray-100 disabled:opacity-50">Previous</button>
+          <button id="next-btn" onclick="changePage(1)" class="px-3 py-1 bg-white border border-gray-300 rounded hover:bg-gray-100 disabled:opacity-50">Next</button>
+        </div>
+      </div>
     </div>
   </main>
 
   <script>
     const SPREADSHEET_ID = '1WVnepXIFnqiwd5-ga3huu8vjJHJUHZ0IlkWE_x-pRjc';
     const CSV_URL = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv`;
+
+    let allData = [];
+    let filteredData = [];
+    let currentPage = 1;
+    const pageSize = 15;
 
     let categoryChartInstance = null;
     let trendChartInstance = null;
@@ -101,72 +121,131 @@
       const refreshIcon = document.getElementById('refresh-icon');
       refreshIcon.classList.add('animate-spin');
 
-      try {
-        Papa.parse(CSV_URL, {
-          download: true,
-          header: true,
-          skipEmptyLines: true,
-          complete: function(results) {
-            refreshIcon.classList.remove('animate-spin');
-            processData(results.data);
-            document.getElementById('last-updated').innerText = `Last sync: ${new Date().toLocaleTimeString()}`;
-          },
-          error: function(err) {
-            refreshIcon.classList.remove('animate-spin');
-            console.error('Error fetching sheet data:', err);
-            alert('Failed to load data. Ensure the Google Sheet is published to web.');
-          }
-        });
-      } catch (err) {
-        refreshIcon.classList.remove('animate-spin');
-        console.error(err);
-      }
+      Papa.parse(CSV_URL, {
+        download: true,
+        header: true,
+        skipEmptyLines: true,
+        complete: function(results) {
+          refreshIcon.classList.remove('animate-spin');
+          parseData(results.data);
+          document.getElementById('last-updated').innerText = `Last sync: ${new Date().toLocaleTimeString()}`;
+        },
+        error: function(err) {
+          refreshIcon.classList.remove('animate-spin');
+          alert('Failed to load data. Make sure the Google Sheet is published to web.');
+        }
+      });
     }
 
-    function processData(rows) {
+    function parseData(rows) {
       if (!rows || rows.length === 0) return;
 
       const keys = Object.keys(rows[0]);
-      const dateKey = keys.find(k => /date/i.test(k)) || keys[0];
-      const categoryKey = keys.find(k => /category|type/i.test(k)) || keys[1];
-      const descKey = keys.find(k => /desc|item|name|title/i.test(k)) || keys[2];
+      
+      // Explicit column identification to prevent TRUE/FALSE or numeric dates mapping as categories
       const amountKey = keys.find(k => /amount|price|cost|val/i.test(k)) || keys[keys.length - 1];
+      const descKey = keys.find(k => /desc|item|name|title|details/i.test(k)) || keys.find(k => k !== amountKey) || keys[0];
+      const categoryKey = keys.find(k => /category|type|group/i.test(k) && !/true|false/i.test(k)) || 'Category';
+      const dateKey = keys.find(k => /date|time|day/i.test(k)) || 'Date';
 
+      allData = rows.map(row => {
+        const rawAmount = String(row[amountKey] || '0').replace(/[^0-9.-]+/g, "");
+        const amount = parseFloat(rawAmount) || 0;
+        
+        let rawCat = row[categoryKey];
+        if (!rawCat || rawCat === 'TRUE' || rawCat === 'FALSE') {
+          rawCat = 'General';
+        }
+
+        let rawDate = row[dateKey] || 'N/A';
+        // Handle Excel/Google serial numbers if date exports as number
+        if (!isNaN(rawDate) && Number(rawDate) > 30000) {
+          const jsDate = new Date((Number(rawDate) - (25567 + 2)) * 86400 * 1000);
+          rawDate = jsDate.toLocaleDateString();
+        }
+
+        return {
+          date: rawDate,
+          category: rawCat,
+          desc: row[descKey] || '-',
+          amount: amount
+        };
+      }).filter(r => r.amount > 0 || r.desc !== '-');
+
+      populateCategoriesDropdown();
+      applyFilters();
+    }
+
+    function populateCategoriesDropdown() {
+      const dropdown = document.getElementById('category-filter');
+      const categories = [...new Set(allData.map(d => d.category))];
+      
+      dropdown.innerHTML = '<option value="ALL">All Categories</option>' + 
+        categories.map(c => `<option value="${c}">${c}</option>`).join('');
+    }
+
+    function applyFilters() {
+      const searchValue = document.getElementById('search-input').value.toLowerCase();
+      const selectedCat = document.getElementById('category-filter').value;
+
+      filteredData = allData.filter(item => {
+        const matchesSearch = item.desc.toLowerCase().includes(searchValue) || item.date.toLowerCase().includes(searchValue);
+        const matchesCat = selectedCat === 'ALL' || item.category === selectedCat;
+        return matchesSearch && matchesCat;
+      });
+
+      currentPage = 1;
+      updateMetricsAndCharts();
+      renderTable();
+    }
+
+    function updateMetricsAndCharts() {
       let total = 0;
       const categories = {};
       const dates = {};
 
-      const cleanRows = rows.map(row => {
-        const rawAmount = String(row[amountKey] || '0').replace(/[^0-9.-]+/g, "");
-        const amount = parseFloat(rawAmount) || 0;
-        const category = row[categoryKey] || 'Uncategorized';
-        const date = row[dateKey] || 'N/A';
-        const desc = row[descKey] || '-';
-
-        total += amount;
-
-        categories[category] = (categories[category] || 0) + amount;
-        dates[date] = (dates[date] || 0) + amount;
-
-        return { date, category, desc, amount };
+      filteredData.forEach(r => {
+        total += r.amount;
+        categories[r.category] = (categories[r.category] || 0) + r.amount;
+        dates[r.date] = (dates[r.date] || 0) + r.amount;
       });
 
       document.getElementById('total-expenses').innerText = `$${total.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-      document.getElementById('total-count').innerText = cleanRows.length;
-      document.getElementById('avg-expense').innerText = `$${(cleanRows.length ? total / cleanRows.length : 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-
-      const tbody = document.getElementById('table-body');
-      tbody.innerHTML = cleanRows.slice(0, 10).map(r => `
-        <tr class="hover:bg-gray-50 transition-colors">
-          <td class="px-6 py-4 font-medium text-gray-900">${r.date}</td>
-          <td class="px-6 py-4"><span class="bg-indigo-50 text-indigo-700 text-xs px-2.5 py-1 rounded-full font-medium">${r.category}</span></td>
-          <td class="px-6 py-4 text-gray-500">${r.desc}</td>
-          <td class="px-6 py-4 text-right font-semibold text-gray-900">$${r.amount.toFixed(2)}</td>
-        </tr>
-      `).join('');
+      document.getElementById('total-count').innerText = filteredData.length;
+      document.getElementById('avg-expense').innerText = `$${(filteredData.length ? total / filteredData.length : 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
 
       renderCategoryChart(categories);
       renderTrendChart(dates);
+    }
+
+    function renderTable() {
+      const tbody = document.getElementById('table-body');
+      const start = (currentPage - 1) * pageSize;
+      const end = start + pageSize;
+      const pageItems = filteredData.slice(start, end);
+
+      if (pageItems.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="4" class="px-6 py-8 text-center text-gray-400">No transactions found matching filters.</td></tr>`;
+      } else {
+        tbody.innerHTML = pageItems.map(r => `
+          <tr class="hover:bg-gray-50 transition-colors">
+            <td class="px-6 py-4 font-medium text-gray-900">${r.date}</td>
+            <td class="px-6 py-4"><span class="bg-indigo-50 text-indigo-700 text-xs px-2.5 py-1 rounded-full font-medium">${r.category}</span></td>
+            <td class="px-6 py-4 text-gray-600">${r.desc}</td>
+            <td class="px-6 py-4 text-right font-semibold text-gray-900">$${r.amount.toFixed(2)}</td>
+          </tr>
+        `).join('');
+      }
+
+      // Update Pagination UI
+      document.getElementById('page-info').innerText = `Showing ${filteredData.length === 0 ? 0 : start + 1}-${Math.min(end, filteredData.length)} of ${filteredData.length}`;
+      document.getElementById('prev-btn').disabled = currentPage === 1;
+      document.getElementById('next-btn').disabled = end >= filteredData.length;
+    }
+
+    function changePage(direction) {
+      currentPage += direction;
+      renderTable();
     }
 
     function renderCategoryChart(categoryData) {
@@ -199,7 +278,7 @@
         data: {
           labels: Object.keys(trendData),
           datasets: [{
-            label: 'Daily Spending ($)',
+            label: 'Spending ($)',
             data: Object.values(trendData),
             borderColor: '#6366F1',
             backgroundColor: 'rgba(99, 102, 241, 0.1)',
