@@ -1,43 +1,297 @@
-function doGet(e) {
-  var action = e.parameter.action;
-  var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
-  
-  // 1. Fetch live data
-  if (action === 'getData') {
-    var data = sheet.getDataRange().getValues();
-    return ContentService.createTextOutput(JSON.stringify(data))
-      .setMimeType(ContentService.MimeType.JSON);
-  }
-  
-  // 2. Update paid status & auto-sort sheet by Column B (Amount) descending
-  if (action === 'updateStatus') {
-    var row = parseInt(e.parameter.row);
-    var status = e.parameter.status === 'true';
-    if (row > 1) {
-      sheet.getRange(row, 1).setValue(status); // Column A = Paid Checkbox
-      
-      // Auto-sort data rows (row 2 downwards) by Column B (Amount) descending
-      var lastRow = sheet.getLastRow();
-      if (lastRow > 1) {
-        var range = sheet.getRange(2, 1, lastRow - 1, sheet.getLastColumn());
-        range.sort({column: 2, ascending: false});
-      }
-      
-      return ContentService.createTextOutput(JSON.stringify({ success: true }))
-        .setMimeType(ContentService.MimeType.JSON);
-    }
-  }
-  
-  return ContentService.createTextOutput(JSON.stringify({ error: 'Invalid parameters' }))
-    .setMimeType(ContentService.MimeType.JSON);
-}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Live Interactive Expense Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-gray-100 text-gray-800 font-sans min-h-screen pb-12">
 
-// Helper function to manually sort the Google Sheet once
-function sortSheetByAmount() {
-  var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
-  var lastRow = sheet.getLastRow();
-  if (lastRow > 1) {
-    var range = sheet.getRange(2, 1, lastRow - 1, sheet.getLastColumn());
-    range.sort({column: 2, ascending: false});
-  }
-}
+  <!-- Header -->
+  <header class="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-10">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+      <div>
+        <h1 class="text-2xl font-bold text-gray-900">Interactive Expense & Income Dashboard</h1>
+        <p class="text-xs text-gray-500">Live 2-Way Sync with Google Sheet (Sorted Highest to Lowest)</p>
+      </div>
+      <button onclick="fetchData()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm px-4 py-2 rounded-lg transition-colors shadow flex items-center gap-2">
+        <svg id="refresh-icon" class="w-4 h-4 fill-current" viewBox="0 0 20 20"><path d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-.61-1.276z"/></svg>
+        Sync Now
+      </button>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+
+    <!-- KPI Metric Cards Grid -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      
+      <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+        <span class="text-xs font-semibold uppercase tracking-wider text-emerald-600">Total Income</span>
+        <div class="text-3xl font-extrabold text-gray-900 mt-2" id="kpi-total-income">0 EGP</div>
+      </div>
+
+      <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+        <span class="text-xs font-semibold uppercase tracking-wider text-rose-500">Expenses (Planned)</span>
+        <div class="text-3xl font-extrabold text-gray-900 mt-2" id="kpi-expenses-planned">0 EGP</div>
+      </div>
+
+      <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+        <span class="text-xs font-semibold uppercase tracking-wider text-blue-500">Paid So Far</span>
+        <div class="text-3xl font-extrabold text-blue-600 mt-2" id="kpi-paid-so-far">0 EGP</div>
+      </div>
+
+      <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+        <span class="text-xs font-semibold uppercase tracking-wider text-amber-500">Remaining Expenses</span>
+        <div class="text-3xl font-extrabold text-amber-600 mt-2" id="kpi-remaining">0 EGP</div>
+      </div>
+
+      <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+        <span class="text-xs font-semibold uppercase tracking-wider text-indigo-600">Net Income Now</span>
+        <div class="text-3xl font-extrabold text-indigo-600 mt-2" id="kpi-net-now">0 EGP</div>
+      </div>
+
+      <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 bg-emerald-50/50">
+        <span class="text-xs font-semibold uppercase tracking-wider text-emerald-700">Net After All Expenses</span>
+        <div class="text-3xl font-extrabold text-emerald-600 mt-2" id="kpi-net-after">0 EGP</div>
+      </div>
+
+    </div>
+
+    <!-- Charts Section -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+        <h2 class="text-lg font-bold text-gray-800 mb-4">Paid vs Remaining Budget</h2>
+        <div class="relative h-64">
+          <canvas id="paidChart"></canvas>
+        </div>
+      </div>
+
+      <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+        <h2 class="text-lg font-bold text-gray-800 mb-4">Top Planned Expenses</h2>
+        <div class="relative h-64">
+          <canvas id="topExpensesChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Interactive Table Section -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+      <div class="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+        <h2 class="text-base font-bold text-gray-800">Expenses Checklist (Sorted Highest to Lowest)</h2>
+        <span class="text-xs text-gray-400" id="last-updated">Last sync: --</span>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-sm text-gray-600">
+          <thead class="bg-gray-100 text-gray-700 uppercase text-xs font-semibold">
+            <tr>
+              <th class="px-6 py-3 w-36">Status</th>
+              <th class="px-6 py-3">Expense Name</th>
+              <th class="px-6 py-3 text-right">Amount</th>
+            </tr>
+          </thead>
+          <tbody id="table-body" class="divide-y divide-gray-100">
+            <tr>
+              <td colspan="3" class="px-6 py-8 text-center text-gray-400">Loading expense sheet...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="px-6 py-4 border-t border-gray-100 flex justify-between items-center bg-gray-50 text-sm text-gray-500">
+        <span id="page-info">Showing 0-0 of 0</span>
+        <div class="flex gap-2">
+          <button id="prev-btn" onclick="changePage(-1)" class="px-3 py-1 bg-white border border-gray-300 rounded hover:bg-gray-100 disabled:opacity-50">Previous</button>
+          <button id="next-btn" onclick="changePage(1)" class="px-3 py-1 bg-white border border-gray-300 rounded hover:bg-gray-100 disabled:opacity-50">Next</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbx6rMQRvEbfn4h9VENhSSQvN2k6fmw5KTw0FSLf0NlIrEjoG-xdhVGJcRmFv6f_ejRW5Q/exec';
+
+    let allExpenses = [];
+    let totalIncome = 38030;
+    let currentPage = 1;
+    const pageSize = 15;
+
+    let topExpensesChartInstance = null;
+    let paidChartInstance = null;
+
+    async function fetchData() {
+      const refreshIcon = document.getElementById('refresh-icon');
+      refreshIcon.classList.add('animate-spin');
+
+      try {
+        const response = await fetch(`${WEB_APP_URL}?action=getData`);
+        const rows = await response.json();
+        refreshIcon.classList.remove('animate-spin');
+        parseData(rows);
+        document.getElementById('last-updated').innerText = `Last sync: ${new Date().toLocaleTimeString()}`;
+      } catch (err) {
+        refreshIcon.classList.remove('animate-spin');
+        console.error(err);
+        alert('Error connecting to Google Sheet Web App.');
+      }
+    }
+
+    function parseData(rows) {
+      if (!rows || rows.length < 2) return;
+
+      allExpenses = [];
+
+      for (let i = 1; i < rows.length; i++) {
+        const row = rows[i];
+        
+        // Col A = Status
+        const isPaid = row[0] === true || String(row[0]).trim().toUpperCase() === 'TRUE';
+        
+        // Col B = Amount
+        const rawAmount = String(row[1] || '0').replace(/[^0-9.-]+/g, "");
+        const amount = parseFloat(rawAmount) || 0;
+        
+        // Col C = Description / Name
+        const desc = row[2] || row[1] || 'Expense Item';
+
+        if (amount > 0 || desc !== 'Expense Item') {
+          allExpenses.push({ rowIndex: i + 1, isPaid, desc, amount });
+        }
+      }
+
+      // Sort expenses descending: biggest amount at the top, smallest at the bottom
+      allExpenses.sort((a, b) => b.amount - a.amount);
+
+      updateMetricsAndCharts();
+      renderTable();
+    }
+
+    async function togglePaidStatus(index) {
+      const item = allExpenses[index];
+      item.isPaid = !item.isPaid;
+
+      updateMetricsAndCharts();
+      renderTable();
+
+      try {
+        await fetch(`${WEB_APP_URL}?action=updateStatus&row=${item.rowIndex}&status=${item.isPaid}`, { mode: 'no-cors' });
+      } catch (e) {
+        console.error('Failed to sync to Google Sheet', e);
+      }
+    }
+
+    function updateMetricsAndCharts() {
+      let expensesPlanned = 0;
+      let paidSoFar = 0;
+
+      allExpenses.forEach(item => {
+        expensesPlanned += item.amount;
+        if (item.isPaid) paidSoFar += item.amount;
+      });
+
+      const remaining = expensesPlanned - paidSoFar;
+      const netNow = totalIncome - paidSoFar;
+      const netAfter = totalIncome - expensesPlanned;
+
+      document.getElementById('kpi-total-income').innerText = `${totalIncome.toLocaleString()} EGP`;
+      document.getElementById('kpi-expenses-planned').innerText = `${expensesPlanned.toLocaleString()} EGP`;
+      document.getElementById('kpi-paid-so-far').innerText = `${paidSoFar.toLocaleString()} EGP`;
+      document.getElementById('kpi-remaining').innerText = `${remaining.toLocaleString()} EGP`;
+      document.getElementById('kpi-net-now').innerText = `${netNow.toLocaleString()} EGP`;
+      document.getElementById('kpi-net-after').innerText = `${netAfter.toLocaleString()} EGP`;
+
+      renderPaidChart(paidSoFar, remaining);
+      renderTopExpensesChart();
+    }
+
+    function renderTable() {
+      const tbody = document.getElementById('table-body');
+      const start = (currentPage - 1) * pageSize;
+      const end = start + pageSize;
+      const pageItems = allExpenses.slice(start, end);
+
+      if (pageItems.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="3" class="px-6 py-8 text-center text-gray-400">No expenses recorded.</td></tr>`;
+      } else {
+        tbody.innerHTML = pageItems.map((r, pageIdx) => {
+          const globalIdx = start + pageIdx;
+          return `
+            <tr class="hover:bg-gray-50 transition-colors">
+              <td class="px-6 py-4">
+                <label class="inline-flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" ${r.isPaid ? 'checked' : ''} onchange="togglePaidStatus(${globalIdx})" class="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500">
+                  <span class="text-xs font-semibold px-2 py-0.5 rounded ${r.isPaid ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}">
+                    ${r.isPaid ? 'PAID' : 'PENDING'}
+                  </span>
+                </label>
+              </td>
+              <td class="px-6 py-4 text-gray-800 font-medium ${r.isPaid ? 'line-through text-gray-400' : ''}">${r.desc}</td>
+              <td class="px-6 py-4 text-right font-semibold text-gray-900">${r.amount.toLocaleString()} EGP</td>
+            </tr>
+          `;
+        }).join('');
+      }
+
+      document.getElementById('page-info').innerText = `Showing ${allExpenses.length === 0 ? 0 : start + 1}-${Math.min(end, allExpenses.length)} of ${allExpenses.length}`;
+      document.getElementById('prev-btn').disabled = currentPage === 1;
+      document.getElementById('next-btn').disabled = end >= allExpenses.length;
+    }
+
+    function changePage(direction) {
+      currentPage += direction;
+      renderTable();
+    }
+
+    function renderPaidChart(paid, remaining) {
+      const ctx = document.getElementById('paidChart').getContext('2d');
+      if (paidChartInstance) paidChartInstance.destroy();
+
+      paidChartInstance = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: ['Paid So Far', 'Remaining Expenses'],
+          datasets: [{
+            data: [paid, remaining],
+            backgroundColor: ['#3B82F6', '#F59E0B']
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { position: 'bottom' } }
+        }
+      });
+    }
+
+    function renderTopExpensesChart() {
+      const ctx = document.getElementById('topExpensesChart').getContext('2d');
+      if (topExpensesChartInstance) topExpensesChartInstance.destroy();
+
+      const topExpenses = [...allExpenses].slice(0, 5);
+
+      topExpensesChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: topExpenses.map(e => e.desc),
+          datasets: [{
+            label: 'Amount (EGP)',
+            data: topExpenses.map(e => e.amount),
+            backgroundColor: '#6366F1'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: { y: { beginAtZero: true } }
+        }
+      });
+    }
+
+    fetchData();
+  </script>
+</body>
+</html>
