@@ -14,7 +14,7 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
       <div>
         <h1 class="text-2xl font-bold text-gray-900">Interactive Expense & Income Dashboard</h1>
-        <p class="text-xs text-gray-500">Live 2-Way Sync with Google Sheet</p>
+        <p class="text-xs text-gray-500">Live 2-Way Sync with Google Sheet (Sorted Highest to Lowest)</p>
       </div>
       <button onclick="fetchData()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm px-4 py-2 rounded-lg transition-colors shadow flex items-center gap-2">
         <svg id="refresh-icon" class="w-4 h-4 fill-current" viewBox="0 0 20 20"><path d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-.61-1.276z"/></svg>
@@ -80,7 +80,7 @@
     <!-- Interactive Table Section -->
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
       <div class="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
-        <h2 class="text-base font-bold text-gray-800">Expenses Checklist (Highest to Lowest)</h2>
+        <h2 class="text-base font-bold text-gray-800">Expenses Checklist (Sorted Highest to Lowest)</h2>
         <span class="text-xs text-gray-400" id="last-updated">Last sync: --</span>
       </div>
 
@@ -122,31 +122,21 @@
     let topExpensesChartInstance = null;
     let paidChartInstance = null;
 
-    // Global callback for JSONP
-    window.handleSheetData = function(rows) {
-      const refreshIcon = document.getElementById('refresh-icon');
-      if (refreshIcon) refreshIcon.classList.remove('animate-spin');
-      parseData(rows);
-      document.getElementById('last-updated').innerText = `Last sync: ${new Date().toLocaleTimeString()}`;
-    };
-
-    function fetchData() {
+    async function fetchData() {
       const refreshIcon = document.getElementById('refresh-icon');
       refreshIcon.classList.add('animate-spin');
 
-      // Remove existing JSONP script tag if any
-      const existingScript = document.getElementById('jsonp-script');
-      if (existingScript) existingScript.remove();
-
-      // Create new JSONP script tag to bypass CORS
-      const script = document.createElement('script');
-      script.id = 'jsonp-script';
-      script.src = `${WEB_APP_URL}?action=getData&callback=handleSheetData`;
-      script.onerror = function() {
+      try {
+        const response = await fetch(`${WEB_APP_URL}?action=getData`);
+        const rows = await response.json();
         refreshIcon.classList.remove('animate-spin');
-        alert('Failed to connect to Google Sheet Web App.');
-      };
-      document.body.appendChild(script);
+        parseData(rows);
+        document.getElementById('last-updated').innerText = `Last sync: ${new Date().toLocaleTimeString()}`;
+      } catch (err) {
+        refreshIcon.classList.remove('animate-spin');
+        console.error(err);
+        alert('Error connecting to Google Sheet Web App.');
+      }
     }
 
     function parseData(rows) {
@@ -157,54 +147,40 @@
       for (let i = 1; i < rows.length; i++) {
         const row = rows[i];
         
-        // Column A = Checkbox (Paid status)
+        // Col A = Status
         const isPaid = row[0] === true || String(row[0]).trim().toUpperCase() === 'TRUE';
         
-        // Columns B & C dynamic mapping
-        const val1 = String(row[1] || '').trim();
-        const val2 = String(row[2] || '').trim();
+        // Col B = Amount
+        const rawAmount = String(row[1] || '0').replace(/[^0-9.-]+/g, "");
+        const amount = parseFloat(rawAmount) || 0;
+        
+        // Col C = Description / Name
+        const desc = row[2] || row[1] || 'Expense Item';
 
-        let amount = 0;
-        let desc = 'Expense Item';
-
-        const num1 = parseFloat(val1.replace(/[^0-9.-]+/g, ""));
-        const num2 = parseFloat(val2.replace(/[^0-9.-]+/g, ""));
-
-        if (!isNaN(num1) && num1 > 0 && isNaN(Number(val2))) {
-          amount = num1;
-          desc = val2 || 'Expense Item';
-        } else if (!isNaN(num2) && num2 > 0) {
-          amount = num2;
-          desc = val1 || 'Expense Item';
-        } else if (!isNaN(num1) && num1 > 0) {
-          amount = num1;
-          desc = val2 || 'Expense Item';
-        }
-
-        if (amount > 0) {
+        if (amount > 0 || desc !== 'Expense Item') {
           allExpenses.push({ rowIndex: i + 1, isPaid, desc, amount });
         }
       }
 
-      // Sort expenses descending (Highest to Lowest)
+      // Sort expenses descending: biggest amount at the top, smallest at the bottom
       allExpenses.sort((a, b) => b.amount - a.amount);
 
       updateMetricsAndCharts();
       renderTable();
     }
 
-    function togglePaidStatus(index) {
+    async function togglePaidStatus(index) {
       const item = allExpenses[index];
       item.isPaid = !item.isPaid;
 
       updateMetricsAndCharts();
       renderTable();
 
-      // Send update to Google Sheet via JSONP
-      const script = document.createElement('script');
-      script.src = `${WEB_APP_URL}?action=updateStatus&row=${item.rowIndex}&status=${item.isPaid}`;
-      document.body.appendChild(script);
-      setTimeout(() => script.remove(), 1000);
+      try {
+        await fetch(`${WEB_APP_URL}?action=updateStatus&row=${item.rowIndex}&status=${item.isPaid}`, { mode: 'no-cors' });
+      } catch (e) {
+        console.error('Failed to sync to Google Sheet', e);
+      }
     }
 
     function updateMetricsAndCharts() {
