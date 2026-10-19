@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Live Expense Dashboard</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- PapaParse CDN for parsing CSV -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+</head>
+<body class="bg-gray-100 text-gray-800 font-sans min-h-screen">
+
+  <!-- Header -->
+  <header class="bg-white shadow-sm border-b border-gray-200">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+      <div>
+        <h1 class="text-2xl font-bold text-gray-900">Expense Analytics Dashboard</h1>
+        <p class="text-sm text-gray-500">Connected to Google Sheet ID: <span class="font-mono text-xs bg-gray-100 p-1 rounded">1WVnepXIFnqiwd5...</span></p>
+      </div>
+      <button onclick="fetchData()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm px-4 py-2 rounded-lg transition-colors shadow flex items-center gap-2">
+        <svg id="refresh-icon" class="w-4 h-4 fill-current" viewBox="0 0 20 20"><path d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z"/></svg>
+        Refresh Data
+      </button>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+
+    <!-- KPI Metric Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+        <span class="text-xs font-semibold uppercase tracking-wider text-gray-400">Total Expenses</span>
+        <div class="text-3xl font-extrabold text-gray-900 mt-2" id="total-expenses">$0.00</div>
+      </div>
+      <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+        <span class="text-xs font-semibold uppercase tracking-wider text-gray-400">Total Transactions</span>
+        <div class="text-3xl font-extrabold text-indigo-600 mt-2" id="total-count">0</div>
+      </div>
+      <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+        <span class="text-xs font-semibold uppercase tracking-wider text-gray-400">Average Expense</span>
+        <div class="text-3xl font-extrabold text-emerald-600 mt-2" id="avg-expense">$0.00</div>
+      </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <!-- Category Chart -->
+      <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+        <h2 class="text-lg font-bold text-gray-800 mb-4">Expenses by Category</h2>
+        <div class="relative h-64">
+          <canvas id="categoryChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Trend Chart -->
+      <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+        <h2 class="text-lg font-bold text-gray-800 mb-4">Spending Over Time</h2>
+        <div class="relative h-64">
+          <canvas id="trendChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Data Table -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+      <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center">
+        <h2 class="text-lg font-bold text-gray-800">Recent Transactions</h2>
+        <span class="text-xs text-gray-400" id="last-updated">Last sync: --</span>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-sm text-gray-600">
+          <thead class="bg-gray-50 text-gray-700 uppercase text-xs font-semibold">
+            <tr id="table-head">
+              <th class="px-6 py-3">Date</th>
+              <th class="px-6 py-3">Category</th>
+              <th class="px-6 py-3">Description</th>
+              <th class="px-6 py-3 text-right">Amount</th>
+            </tr>
+          </thead>
+          <tbody id="table-body" class="divide-y divide-gray-100">
+            <tr>
+              <td colspan="4" class="px-6 py-8 text-center text-gray-400">Loading data from Google Sheet...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const SPREADSHEET_ID = '1WVnepXIFnqiwd5-ga3huu8vjJHJUHZ0IlkWE_x-pRjc';
+    const CSV_URL = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv`;
+
+    let categoryChartInstance = null;
+    let trendChartInstance = null;
+
+    async function fetchData() {
+      const refreshIcon = document.getElementById('refresh-icon');
+      refreshIcon.classList.add('animate-spin');
+
+      try {
+        Papa.parse(CSV_URL, {
+          download: true,
+          header: true,
+          skipEmptyLines: true,
+          complete: function(results) {
+            refreshIcon.classList.remove('animate-spin');
+            processData(results.data);
+            document.getElementById('last-updated').innerText = `Last sync: ${new Date().toLocaleTimeString()}`;
+          },
+          error: function(err) {
+            refreshIcon.classList.remove('animate-spin');
+            console.error('Error fetching sheet data:', err);
+            alert('Failed to load data. Ensure the Google Sheet is published to web.');
+          }
+        });
+      } catch (err) {
+        refreshIcon.classList.remove('animate-spin');
+        console.error(err);
+      }
+    }
+
+    function processData(rows) {
+      if (!rows || rows.length === 0) return;
+
+      const keys = Object.keys(rows[0]);
+      const dateKey = keys.find(k => /date/i.test(k)) || keys[0];
+      const categoryKey = keys.find(k => /category|type/i.test(k)) || keys[1];
+      const descKey = keys.find(k => /desc|item|name|title/i.test(k)) || keys[2];
+      const amountKey = keys.find(k => /amount|price|cost|val/i.test(k)) || keys[keys.length - 1];
+
+      let total = 0;
+      const categories = {};
+      const dates = {};
+
+      const cleanRows = rows.map(row => {
+        const rawAmount = String(row[amountKey] || '0').replace(/[^0-9.-]+/g, "");
+        const amount = parseFloat(rawAmount) || 0;
+        const category = row[categoryKey] || 'Uncategorized';
+        const date = row[dateKey] || 'N/A';
+        const desc = row[descKey] || '-';
+
+        total += amount;
+
+        categories[category] = (categories[category] || 0) + amount;
+        dates[date] = (dates[date] || 0) + amount;
+
+        return { date, category, desc, amount };
+      });
+
+      document.getElementById('total-expenses').innerText = `$${total.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+      document.getElementById('total-count').innerText = cleanRows.length;
+      document.getElementById('avg-expense').innerText = `$${(cleanRows.length ? total / cleanRows.length : 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+
+      const tbody = document.getElementById('table-body');
+      tbody.innerHTML = cleanRows.slice(0, 10).map(r => `
+        <tr class="hover:bg-gray-50 transition-colors">
+          <td class="px-6 py-4 font-medium text-gray-900">${r.date}</td>
+          <td class="px-6 py-4"><span class="bg-indigo-50 text-indigo-700 text-xs px-2.5 py-1 rounded-full font-medium">${r.category}</span></td>
+          <td class="px-6 py-4 text-gray-500">${r.desc}</td>
+          <td class="px-6 py-4 text-right font-semibold text-gray-900">$${r.amount.toFixed(2)}</td>
+        </tr>
+      `).join('');
+
+      renderCategoryChart(categories);
+      renderTrendChart(dates);
+    }
+
+    function renderCategoryChart(categoryData) {
+      const ctx = document.getElementById('categoryChart').getContext('2d');
+      if (categoryChartInstance) categoryChartInstance.destroy();
+
+      categoryChartInstance = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: Object.keys(categoryData),
+          datasets: [{
+            data: Object.values(categoryData),
+            backgroundColor: ['#6366F1', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#06B6D4']
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { position: 'bottom' } }
+        }
+      });
+    }
+
+    function renderTrendChart(trendData) {
+      const ctx = document.getElementById('trendChart').getContext('2d');
+      if (trendChartInstance) trendChartInstance.destroy();
+
+      trendChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: Object.keys(trendData),
+          datasets: [{
+            label: 'Daily Spending ($)',
+            data: Object.values(trendData),
+            borderColor: '#6366F1',
+            backgroundColor: 'rgba(99, 102, 241, 0.1)',
+            fill: true,
+            tension: 0.3
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: { y: { beginAtZero: true } },
+          plugins: { legend: { display: false } }
+        }
+      });
+    }
+
+    fetchData();
+  </script>
+</body>
+</html>
