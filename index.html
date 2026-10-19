@@ -11,15 +11,21 @@
 
   <!-- Header -->
   <header class="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-10">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center flex-wrap gap-4">
       <div>
         <h1 class="text-2xl font-bold text-gray-900">Interactive Expense & Income Dashboard</h1>
-        <p class="text-xs text-gray-500">Live 2-Way Sync with Google Sheet (Sorted Highest to Lowest)</p>
+        <p class="text-xs text-gray-500">Live 2-Way Sync with Google Sheet</p>
       </div>
-      <button onclick="fetchData()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm px-4 py-2 rounded-lg transition-colors shadow flex items-center gap-2">
-        <svg id="refresh-icon" class="w-4 h-4 fill-current" viewBox="0 0 20 20"><path d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-.61-1.276z"/></svg>
-        Sync Now
-      </button>
+      <div class="flex items-center gap-3">
+        <button onclick="openModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-sm px-4 py-2 rounded-lg transition-colors shadow flex items-center gap-1.5">
+          <svg class="w-4 h-4 fill-current" viewBox="0 0 20 20"><path d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"/></svg>
+          Add Income / Expense
+        </button>
+        <button onclick="fetchData()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm px-4 py-2 rounded-lg transition-colors shadow flex items-center gap-2">
+          <svg id="refresh-icon" class="w-4 h-4 fill-current" viewBox="0 0 20 20"><path d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-.61-1.276z"/></svg>
+          Sync Now
+        </button>
+      </div>
     </div>
   </header>
 
@@ -80,7 +86,7 @@
     <!-- Interactive Table Section -->
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
       <div class="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
-        <h2 class="text-base font-bold text-gray-800">Expenses Checklist (Sorted Highest to Lowest)</h2>
+        <h2 class="text-base font-bold text-gray-800">Expenses Checklist (Highest to Lowest)</h2>
         <span class="text-xs text-gray-400" id="last-updated">Last sync: --</span>
       </div>
 
@@ -111,6 +117,41 @@
     </div>
   </main>
 
+  <!-- Add Income / Expense Modal -->
+  <div id="modal" class="fixed inset-0 bg-gray-900/50 flex items-center justify-center p-4 hidden z-50">
+    <div class="bg-white rounded-xl shadow-xl max-w-md w-full p-6 space-y-4">
+      <div class="flex justify-between items-center border-b pb-3">
+        <h3 class="text-lg font-bold text-gray-900">Add New Entry</h3>
+        <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600">&times;</button>
+      </div>
+
+      <form id="add-entry-form" onsubmit="submitNewEntry(event)" class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold uppercase text-gray-500 mb-1">Entry Type</label>
+          <select id="entry-type" class="w-full border border-gray-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+            <option value="expense">Expense</option>
+            <option value="income">Income</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold uppercase text-gray-500 mb-1">Description / Name</label>
+          <input type="text" id="entry-desc" placeholder="e.g. Electricity, Bonus Income" required class="w-full border border-gray-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold uppercase text-gray-500 mb-1">Amount (EGP)</label>
+          <input type="number" id="entry-amount" step="0.01" placeholder="e.g. 500" required class="w-full border border-gray-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+        </div>
+
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" onclick="closeModal()" class="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50">Cancel</button>
+          <button type="submit" id="submit-btn" class="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700">Save Entry</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <script>
     const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbx6rMQRvEbfn4h9VENhSSQvN2k6fmw5KTw0FSLf0NlIrEjoG-xdhVGJcRmFv6f_ejRW5Q/exec';
 
@@ -122,65 +163,124 @@
     let topExpensesChartInstance = null;
     let paidChartInstance = null;
 
-    async function fetchData() {
+    window.handleSheetData = function(res) {
+      const refreshIcon = document.getElementById('refresh-icon');
+      if (refreshIcon) refreshIcon.classList.remove('animate-spin');
+      
+      const rows = res.data || res;
+      parseData(rows);
+      document.getElementById('last-updated').innerText = `Last sync: ${new Date().toLocaleTimeString()}`;
+    };
+
+    function fetchData() {
       const refreshIcon = document.getElementById('refresh-icon');
       refreshIcon.classList.add('animate-spin');
 
-      try {
-        const response = await fetch(`${WEB_APP_URL}?action=getData`);
-        const rows = await response.json();
-        refreshIcon.classList.remove('animate-spin');
-        parseData(rows);
-        document.getElementById('last-updated').innerText = `Last sync: ${new Date().toLocaleTimeString()}`;
-      } catch (err) {
-        refreshIcon.classList.remove('animate-spin');
-        console.error(err);
-        alert('Error connecting to Google Sheet Web App.');
-      }
+      const existingScript = document.getElementById('jsonp-script');
+      if (existingScript) existingScript.remove();
+
+      const script = document.createElement('script');
+      script.id = 'jsonp-script';
+      script.src = `${WEB_APP_URL}?action=getData&callback=handleSheetData`;
+      document.body.appendChild(script);
     }
 
     function parseData(rows) {
       if (!rows || rows.length < 2) return;
 
       allExpenses = [];
+      let dynamicIncome = 0;
 
       for (let i = 1; i < rows.length; i++) {
         const row = rows[i];
-        
-        // Col A = Status
-        const isPaid = row[0] === true || String(row[0]).trim().toUpperCase() === 'TRUE';
-        
-        // Col B = Amount
-        const rawAmount = String(row[1] || '0').replace(/[^0-9.-]+/g, "");
-        const amount = parseFloat(rawAmount) || 0;
-        
-        // Col C = Description / Name
-        const desc = row[2] || row[1] || 'Expense Item';
+        const col0 = String(row[0] || '').trim();
 
-        if (amount > 0 || desc !== 'Expense Item') {
+        // Separate extra income rows if added via dashboard
+        if (col0.toUpperCase() === 'INCOME') {
+          dynamicIncome += parseFloat(row[1]) || 0;
+          continue;
+        }
+
+        const isPaid = col0 === 'true' || col0.toUpperCase() === 'TRUE';
+        const val1 = String(row[1] || '').trim();
+        const val2 = String(row[2] || '').trim();
+
+        let amount = 0;
+        let desc = 'Expense Item';
+
+        const num1 = parseFloat(val1.replace(/[^0-9.-]+/g, ""));
+        const num2 = parseFloat(val2.replace(/[^0-9.-]+/g, ""));
+
+        if (!isNaN(num1) && num1 > 0 && isNaN(Number(val2))) {
+          amount = num1;
+          desc = val2 || 'Expense Item';
+        } else if (!isNaN(num2) && num2 > 0) {
+          amount = num2;
+          desc = val1 || 'Expense Item';
+        } else if (!isNaN(num1) && num1 > 0) {
+          amount = num1;
+          desc = val2 || 'Expense Item';
+        }
+
+        if (amount > 0) {
           allExpenses.push({ rowIndex: i + 1, isPaid, desc, amount });
         }
       }
 
-      // Sort expenses descending: biggest amount at the top, smallest at the bottom
+      // Base income + added dynamic income
+      totalIncome = 38030 + dynamicIncome;
+
+      // Sort expenses descending (Highest to Lowest)
       allExpenses.sort((a, b) => b.amount - a.amount);
 
       updateMetricsAndCharts();
       renderTable();
     }
 
-    async function togglePaidStatus(index) {
+    function togglePaidStatus(index) {
       const item = allExpenses[index];
       item.isPaid = !item.isPaid;
 
       updateMetricsAndCharts();
       renderTable();
 
-      try {
-        await fetch(`${WEB_APP_URL}?action=updateStatus&row=${item.rowIndex}&status=${item.isPaid}`, { mode: 'no-cors' });
-      } catch (e) {
-        console.error('Failed to sync to Google Sheet', e);
-      }
+      const script = document.createElement('script');
+      script.src = `${WEB_APP_URL}?action=updateStatus&row=${item.rowIndex}&status=${item.isPaid}`;
+      document.body.appendChild(script);
+      setTimeout(() => script.remove(), 1000);
+    }
+
+    function openModal() {
+      document.getElementById('modal').classList.remove('hidden');
+    }
+
+    function closeModal() {
+      document.getElementById('modal').classList.add('hidden');
+      document.getElementById('add-entry-form').reset();
+    }
+
+    function submitNewEntry(e) {
+      e.preventDefault();
+      const type = document.getElementById('entry-type').value;
+      const desc = encodeURIComponent(document.getElementById('entry-desc').value);
+      const amount = document.getElementById('entry-amount').value;
+
+      const submitBtn = document.getElementById('submit-btn');
+      submitBtn.innerText = 'Saving...';
+      submitBtn.disabled = true;
+
+      const action = type === 'income' ? 'addIncome' : 'addExpense';
+      
+      window.handleEntrySaved = function() {
+        submitBtn.innerText = 'Save Entry';
+        submitBtn.disabled = false;
+        closeModal();
+        fetchData(); // Sync live data and recalculate metrics
+      };
+
+      const script = document.createElement('script');
+      script.src = `${WEB_APP_URL}?action=${action}&desc=${desc}&amount=${amount}&callback=handleEntrySaved`;
+      document.body.appendChild(script);
     }
 
     function updateMetricsAndCharts() {
