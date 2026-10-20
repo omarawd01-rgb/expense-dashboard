@@ -16,68 +16,61 @@
         <h1 class="text-2xl font-bold text-gray-900">Interactive Expense & Income Dashboard</h1>
         <p class="text-xs text-gray-500">Live 2-Way Sync with Google Sheet (Sorted Highest to Lowest)</p>
       </div>
-      <button onclick="fetchData()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm px-4 py-2 rounded-lg transition-colors shadow flex items-center gap-2">
-        <svg id="refresh-icon" class="w-4 h-4 fill-current" viewBox="0 0 20 20"><path d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-.61-1.276z"/></svg>
-        Sync Now
-      </button>
+      <div class="flex gap-3">
+        <button onclick="openAddModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-sm px-4 py-2 rounded-lg transition-colors shadow flex items-center gap-2">
+          + Add Expense
+        </button>
+        <button onclick="fetchData()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm px-4 py-2 rounded-lg transition-colors shadow flex items-center gap-2">
+          <svg id="refresh-icon" class="w-4 h-4 fill-current" viewBox="0 0 20 20"><path d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-.61-1.276z"/></svg>
+          Sync Now
+        </button>
+      </div>
     </div>
   </header>
 
   <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
 
-    <!-- KPI Metric Cards Grid -->
+    <!-- KPI Cards Grid -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-      
       <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
         <span class="text-xs font-semibold uppercase tracking-wider text-emerald-600">Total Income</span>
         <div class="text-3xl font-extrabold text-gray-900 mt-2" id="kpi-total-income">0 EGP</div>
       </div>
-
       <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
         <span class="text-xs font-semibold uppercase tracking-wider text-rose-500">Expenses (Planned)</span>
         <div class="text-3xl font-extrabold text-gray-900 mt-2" id="kpi-expenses-planned">0 EGP</div>
       </div>
-
       <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
         <span class="text-xs font-semibold uppercase tracking-wider text-blue-500">Paid So Far</span>
         <div class="text-3xl font-extrabold text-blue-600 mt-2" id="kpi-paid-so-far">0 EGP</div>
       </div>
-
       <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
         <span class="text-xs font-semibold uppercase tracking-wider text-amber-500">Remaining Expenses</span>
         <div class="text-3xl font-extrabold text-amber-600 mt-2" id="kpi-remaining">0 EGP</div>
       </div>
-
       <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
         <span class="text-xs font-semibold uppercase tracking-wider text-indigo-600">Net Income Now</span>
         <div class="text-3xl font-extrabold text-indigo-600 mt-2" id="kpi-net-now">0 EGP</div>
       </div>
-
       <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 bg-emerald-50/50">
         <span class="text-xs font-semibold uppercase tracking-wider text-emerald-700">Net After All Expenses</span>
         <div class="text-3xl font-extrabold text-emerald-600 mt-2" id="kpi-net-after">0 EGP</div>
       </div>
-
     </div>
 
-    <!-- Charts Section -->
+    <!-- Charts -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
       <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
         <h2 class="text-lg font-bold text-gray-800 mb-4">Paid vs Remaining Budget</h2>
-        <div class="relative h-64">
-          <canvas id="paidChart"></canvas>
-        </div>
+        <div class="relative h-64"><canvas id="paidChart"></canvas></div>
       </div>
-
       <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
         <h2 class="text-lg font-bold text-gray-800 mb-4">Top Planned Expenses</h2>
-        <div class="relative h-64">
-          <canvas id="topExpensesChart"></canvas>
-        </div>
+        <div class="relative h-64"><canvas id="topExpensesChart"></canvas></div>
       </div>
     </div>
 
-    <!-- Interactive Table Section -->
+    <!-- Table -->
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
       <div class="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
         <h2 class="text-base font-bold text-gray-800">Expenses Checklist (Sorted Highest to Lowest)</h2>
@@ -91,11 +84,12 @@
               <th class="px-6 py-3 w-36">Status</th>
               <th class="px-6 py-3">Expense Name</th>
               <th class="px-6 py-3 text-right">Amount</th>
+              <th class="px-6 py-3 text-center w-24">Actions</th>
             </tr>
           </thead>
           <tbody id="table-body" class="divide-y divide-gray-100">
             <tr>
-              <td colspan="3" class="px-6 py-8 text-center text-gray-400">Loading expense sheet...</td>
+              <td colspan="4" class="px-6 py-8 text-center text-gray-400">Loading expense sheet...</td>
             </tr>
           </tbody>
         </table>
@@ -110,6 +104,33 @@
       </div>
     </div>
   </main>
+
+  <!-- Add Expense Modal -->
+  <div id="add-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-xl max-w-md w-full p-6 shadow-xl space-y-4">
+      <h3 class="text-lg font-bold text-gray-900">Add New Expense</h3>
+      
+      <div>
+        <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Expense Description</label>
+        <input type="text" id="new-desc" placeholder="e.g. Electricity Bill" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+      </div>
+
+      <div>
+        <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Amount (EGP)</label>
+        <input type="number" id="new-amount" placeholder="0" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+      </div>
+
+      <div class="flex items-center gap-2">
+        <input type="checkbox" id="new-status" class="w-4 h-4 text-indigo-600 rounded border-gray-300">
+        <label for="new-status" class="text-sm text-gray-700">Mark as Paid immediately</label>
+      </div>
+
+      <div class="flex justify-end gap-3 pt-2">
+        <button onclick="closeAddModal()" class="px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50">Cancel</button>
+        <button onclick="submitNewExpense()" id="submit-btn" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium">Add Expense</button>
+      </div>
+    </div>
+  </div>
 
   <script>
     const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbx6rMQRvEbfn4h9VENhSSQvN2k6fmw5KTw0FSLf0NlIrEjoG-xdhVGJcRmFv6f_ejRW5Q/exec';
@@ -140,21 +161,20 @@
     }
 
     function parseData(rows) {
-      if (!rows || rows.length < 2) return;
+      if (!rows || rows.length < 2) {
+        allExpenses = [];
+        updateMetricsAndCharts();
+        renderTable();
+        return;
+      }
 
       allExpenses = [];
 
       for (let i = 1; i < rows.length; i++) {
         const row = rows[i];
-        
-        // Col A = Status
         const isPaid = row[0] === true || String(row[0]).trim().toUpperCase() === 'TRUE';
-        
-        // Col B = Amount
         const rawAmount = String(row[1] || '0').replace(/[^0-9.-]+/g, "");
         const amount = parseFloat(rawAmount) || 0;
-        
-        // Col C = Description / Name
         const desc = row[2] || row[1] || 'Expense Item';
 
         if (amount > 0 || desc !== 'Expense Item') {
@@ -162,9 +182,7 @@
         }
       }
 
-      // Sort expenses descending: biggest amount at the top, smallest at the bottom
       allExpenses.sort((a, b) => b.amount - a.amount);
-
       updateMetricsAndCharts();
       renderTable();
     }
@@ -179,7 +197,61 @@
       try {
         await fetch(`${WEB_APP_URL}?action=updateStatus&row=${item.rowIndex}&status=${item.isPaid}`, { mode: 'no-cors' });
       } catch (e) {
-        console.error('Failed to sync to Google Sheet', e);
+        console.error('Failed to sync status update', e);
+      }
+    }
+
+    function openAddModal() {
+      document.getElementById('add-modal').classList.remove('hidden');
+      document.getElementById('add-modal').classList.add('flex');
+    }
+
+    function closeAddModal() {
+      document.getElementById('add-modal').classList.add('hidden');
+      document.getElementById('add-modal').classList.remove('flex');
+      document.getElementById('new-desc').value = '';
+      document.getElementById('new-amount').value = '';
+      document.getElementById('new-status').checked = false;
+    }
+
+    async function submitNewExpense() {
+      const desc = document.getElementById('new-desc').value.trim();
+      const amount = parseFloat(document.getElementById('new-amount').value);
+      const isPaid = document.getElementById('new-status').checked;
+
+      if (!desc || isNaN(amount) || amount <= 0) {
+        alert('Please enter a valid description and amount.');
+        return;
+      }
+
+      const btn = document.getElementById('submit-btn');
+      btn.innerText = 'Saving...';
+      btn.disabled = true;
+
+      try {
+        const url = `${WEB_APP_URL}?action=addExpense&desc=${encodeURIComponent(desc)}&amount=${amount}&status=${isPaid}`;
+        await fetch(url, { mode: 'no-cors' });
+        closeAddModal();
+        await fetchData(); // Full sync to get new row indices
+      } catch (err) {
+        console.error(err);
+        alert('Failed to add expense.');
+      } finally {
+        btn.innerText = 'Add Expense';
+        btn.disabled = false;
+      }
+    }
+
+    async function deleteExpense(index) {
+      const item = allExpenses[index];
+      if (!confirm(`Are you sure you want to delete "${item.desc}"?`)) return;
+
+      try {
+        await fetch(`${WEB_APP_URL}?action=deleteExpense&row=${item.rowIndex}`, { mode: 'no-cors' });
+        await fetchData(); // Re-sync to re-align sheet row indices
+      } catch (err) {
+        console.error(err);
+        alert('Failed to delete expense.');
       }
     }
 
@@ -214,7 +286,7 @@
       const pageItems = allExpenses.slice(start, end);
 
       if (pageItems.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="3" class="px-6 py-8 text-center text-gray-400">No expenses recorded.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="4" class="px-6 py-8 text-center text-gray-400">No expenses recorded.</td></tr>`;
       } else {
         tbody.innerHTML = pageItems.map((r, pageIdx) => {
           const globalIdx = start + pageIdx;
@@ -230,6 +302,11 @@
               </td>
               <td class="px-6 py-4 text-gray-800 font-medium ${r.isPaid ? 'line-through text-gray-400' : ''}">${r.desc}</td>
               <td class="px-6 py-4 text-right font-semibold text-gray-900">${r.amount.toLocaleString()} EGP</td>
+              <td class="px-6 py-4 text-center">
+                <button onclick="deleteExpense(${globalIdx})" class="text-red-500 hover:text-red-700 hover:bg-red-50 p-1.5 rounded transition-colors" title="Delete Expense">
+                  <svg class="w-4 h-4 fill-current" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                </button>
+              </td>
             </tr>
           `;
         }).join('');
@@ -253,16 +330,9 @@
         type: 'doughnut',
         data: {
           labels: ['Paid So Far', 'Remaining Expenses'],
-          datasets: [{
-            data: [paid, remaining],
-            backgroundColor: ['#3B82F6', '#F59E0B']
-          }]
+          datasets: [{ data: [paid, remaining], backgroundColor: ['#3B82F6', '#F59E0B'] }]
         },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: { legend: { position: 'bottom' } }
-        }
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
       });
     }
 
@@ -276,11 +346,7 @@
         type: 'bar',
         data: {
           labels: topExpenses.map(e => e.desc),
-          datasets: [{
-            label: 'Amount (EGP)',
-            data: topExpenses.map(e => e.amount),
-            backgroundColor: '#6366F1'
-          }]
+          datasets: [{ label: 'Amount (EGP)', data: topExpenses.map(e => e.amount), backgroundColor: '#6366F1' }]
         },
         options: {
           responsive: true,
