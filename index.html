@@ -16,15 +16,18 @@
         <h1 class="text-2xl font-bold text-gray-900">Interactive Expense & Income Dashboard</h1>
         <p class="text-xs text-gray-500">Live 2-Way Sync with Google Sheet (Sorted Highest to Lowest)</p>
       </div>
-      <div class="flex gap-3">
+      <div class="flex items-center gap-3">
+        <span class="text-xs text-gray-500 font-mono hidden sm:inline" id="sync-timer-label">Next sync: 30s</span>
         <button onclick="openIncomeModal()" class="bg-blue-600 hover:bg-blue-700 text-white font-medium text-sm px-4 py-2 rounded-lg transition-colors shadow flex items-center gap-2">
           + Add Income
         </button>
         <button onclick="openAddModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-sm px-4 py-2 rounded-lg transition-colors shadow flex items-center gap-2">
           + Add Expense
         </button>
-        <button onclick="fetchData()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm px-4 py-2 rounded-lg transition-colors shadow flex items-center gap-2">
-          <svg id="refresh-icon" class="w-4 h-4 fill-current" viewBox="0 0 20 20"><path d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-.61-1.276z"/></svg>
+        <button onclick="manualSync()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm px-4 py-2 rounded-lg transition-colors shadow flex items-center gap-2">
+          <svg id="refresh-icon" class="w-4 h-4 fill-current" viewBox="0 0 20 20">
+            <path d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-.61-1.276z"/>
+          </svg>
           Sync Now
         </button>
       </div>
@@ -185,33 +188,35 @@
     let totalIncome = 0;
     let currentPage = 1;
     const pageSize = 15;
+    let countdown = 30;
 
     let topExpensesChartInstance = null;
     let paidChartInstance = null;
 
+    // Data Fetcher
     async function fetchData() {
       const refreshIcon = document.getElementById('refresh-icon');
-      refreshIcon.classList.add('animate-spin');
+      if (refreshIcon) refreshIcon.classList.add('animate-spin');
 
       try {
         const response = await fetch(`${WEB_APP_URL}?action=getData`);
         const payload = await response.json();
-        refreshIcon.classList.remove('animate-spin');
+        if (refreshIcon) refreshIcon.classList.remove('animate-spin');
         
         parseData(payload);
         document.getElementById('last-updated').innerText = `Last sync: ${new Date().toLocaleTimeString()}`;
       } catch (err) {
-        refreshIcon.classList.remove('animate-spin');
-        console.error(err);
-        alert('Error connecting to Google Sheet Web App.');
+        if (refreshIcon) refreshIcon.classList.remove('animate-spin');
+        console.error('Connection error:', err);
       }
     }
 
+    // Data Parser for Side-by-Side Google Sheets Layout
     function parseData(data) {
-      // 1. Set Total Income from Cell E5
+      // 1. Total Income directly from Cell E5
       totalIncome = parseFloat(data.totalIncome) || 0;
 
-      // 2. Parse Expense Rows (Cols A, B, C)
+      // 2. Parse Expenses (Cols A, B, C)
       allExpenses = [];
       const expRows = data.expenses || [];
 
@@ -237,7 +242,7 @@
       renderIncomeTable();
     }
 
-    // Modal Display Handlers
+    // Modal Control Functions
     function openAddModal() {
       document.getElementById('add-modal').classList.remove('hidden');
       document.getElementById('add-modal').classList.add('flex');
@@ -261,7 +266,7 @@
       document.getElementById('inc-amount').value = '';
     }
 
-    // API Submit Actions
+    // API Handlers
     async function submitNewExpense() {
       const desc = document.getElementById('new-desc').value.trim();
       const amount = parseFloat(document.getElementById('new-amount').value);
@@ -330,7 +335,7 @@
       }
     }
 
-    // Calculation Engine & Metrics Display
+    // KPI & Metrics Computation Engine
     function updateMetricsAndCharts() {
       let expensesPlanned = 0;
       let paidSoFar = 0;
@@ -355,7 +360,7 @@
       renderTopExpensesChart();
     }
 
-    // Table Rendering
+    // Table Renderers
     function renderTable() {
       const tbody = document.getElementById('table-body');
       const start = (currentPage - 1) * pageSize;
@@ -411,7 +416,7 @@
       renderTable();
     }
 
-    // Chart Visualizations
+    // Chart.js Visualizations
     function renderPaidChart(paid, remaining) {
       const ctx = document.getElementById('paidChart').getContext('2d');
       if (paidChartInstance) paidChartInstance.destroy();
@@ -447,7 +452,32 @@
       });
     }
 
+    // Auto-Sync Countdown Loop (30 seconds)
+    function startCountdown() {
+      countdown = 30;
+      const label = document.getElementById('sync-timer-label');
+      
+      if (window.countdownInterval) clearInterval(window.countdownInterval);
+      
+      window.countdownInterval = setInterval(() => {
+        countdown--;
+        if (label) label.innerText = `Next sync: ${countdown}s`;
+        
+        if (countdown <= 0) {
+          countdown = 30;
+          fetchData();
+        }
+      }, 1000);
+    }
+
+    function manualSync() {
+      fetchData();
+      startCountdown();
+    }
+
+    // Initialize application
     fetchData();
+    startCountdown();
   </script>
 </body>
 </html>
