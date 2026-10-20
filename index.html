@@ -79,7 +79,7 @@
     <!-- Expenses Checklist Table -->
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
       <div class="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
-        <h2 class="text-base font-bold text-gray-800">Expenses Checklist (Sorted Highest to Lowest)</h2>
+        <h2 class="text-base font-bold text-gray-800">Expenses Checklist (Click fields to edit inline)</h2>
         <span class="text-xs text-gray-400" id="last-updated">Last sync: --</span>
       </div>
 
@@ -214,7 +214,7 @@
     function parseData(data) {
       totalIncome = parseFloat(data.totalIncome) || 0;
 
-      // Expenses
+      // Parse Expenses
       allExpenses = [];
       const expRows = data.expenses || [];
 
@@ -230,7 +230,7 @@
 
       allExpenses.sort((a, b) => b.amount - a.amount);
 
-      // Income List
+      // Parse Income List
       allIncome = data.incomeList || [];
 
       updateMetricsAndCharts();
@@ -262,7 +262,7 @@
       document.getElementById('inc-amount').value = '';
     }
 
-    // Add Operations
+    // Add Actions
     async function submitNewExpense() {
       const desc = document.getElementById('new-desc').value.trim();
       const amount = parseFloat(document.getElementById('new-amount').value);
@@ -315,6 +315,65 @@
       } finally {
         btn.innerText = 'Add Income';
         btn.disabled = false;
+      }
+    }
+
+    // Inline Editing Actions
+    async function saveExpenseEdit(globalIndex, field, value) {
+      const item = allExpenses[globalIndex];
+      const originalValue = item[field];
+      
+      if (field === 'amount') {
+        value = parseFloat(value);
+        if (isNaN(value) || value <= 0) return;
+      } else {
+        value = value.trim();
+        if (!value) return;
+      }
+
+      if (value === originalValue) return;
+
+      item[field] = value;
+      updateMetricsAndCharts();
+
+      try {
+        const url = `${WEB_APP_URL}?action=editExpense&row=${item.rowIndex}&${field}=${encodeURIComponent(value)}`;
+        await fetch(url, { mode: 'no-cors' });
+      } catch (err) {
+        console.error('Failed to save expense edit:', err);
+        item[field] = originalValue;
+        updateMetricsAndCharts();
+        renderTable();
+      }
+    }
+
+    async function saveIncomeEdit(index, field, value) {
+      const item = allIncome[index];
+      if (item.isMain) return;
+      
+      const originalValue = item[field];
+
+      if (field === 'amount') {
+        value = parseFloat(value);
+        if (isNaN(value) || value <= 0) return;
+      } else {
+        value = value.trim();
+        if (!value) return;
+      }
+
+      if (value === originalValue) return;
+
+      item[field] = value;
+      updateMetricsAndCharts();
+
+      try {
+        const url = `${WEB_APP_URL}?action=editIncome&row=${item.rowIndex}&${field}=${encodeURIComponent(value)}`;
+        await fetch(url, { mode: 'no-cors' });
+        await fetchData();
+      } catch (err) {
+        console.error('Failed to save income edit:', err);
+        item[field] = originalValue;
+        renderIncomeTable();
       }
     }
 
@@ -410,8 +469,18 @@
                   </span>
                 </label>
               </td>
-              <td class="px-6 py-4 text-gray-800 font-medium ${r.isPaid ? 'line-through text-gray-400' : ''}">${r.desc}</td>
-              <td class="px-6 py-4 text-right font-semibold text-gray-900">${r.amount.toLocaleString()} EGP</td>
+              <td class="px-6 py-4">
+                <input type="text" 
+                       value="${r.desc}" 
+                       onchange="saveExpenseEdit(${globalIdx}, 'desc', this.value)" 
+                       class="bg-transparent border-b border-transparent hover:border-gray-300 focus:border-indigo-500 focus:bg-white px-1 py-0.5 rounded w-full font-medium ${r.isPaid ? 'line-through text-gray-400' : 'text-gray-800'}">
+              </td>
+              <td class="px-6 py-4 text-right">
+                <input type="number" 
+                       value="${r.amount}" 
+                       onchange="saveExpenseEdit(${globalIdx}, 'amount', this.value)" 
+                       class="bg-transparent border-b border-transparent hover:border-gray-300 focus:border-indigo-500 focus:bg-white text-right px-1 py-0.5 rounded w-28 font-semibold text-gray-900">
+              </td>
               <td class="px-6 py-4 text-center">
                 <button onclick="deleteExpense(${globalIdx})" class="text-red-500 hover:text-red-700 hover:bg-red-50 p-1.5 rounded transition-colors" title="Delete Expense">
                   <svg class="w-4 h-4 fill-current" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
@@ -434,8 +503,22 @@
       } else {
         tbody.innerHTML = allIncome.map((item, idx) => `
           <tr class="hover:bg-gray-50 transition-colors">
-            <td class="px-6 py-4 font-medium text-gray-800">${item.source}</td>
-            <td class="px-6 py-4 text-right font-bold text-emerald-600">${parseFloat(item.amount || 0).toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 2})} EGP</td>
+            <td class="px-6 py-4">
+              ${!item.isMain ? `
+                <input type="text" 
+                       value="${item.source}" 
+                       onchange="saveIncomeEdit(${idx}, 'source', this.value)" 
+                       class="bg-transparent border-b border-transparent hover:border-gray-300 focus:border-emerald-500 focus:bg-white px-1 py-0.5 rounded w-full font-medium text-gray-800">
+              ` : `<span class="font-medium text-gray-800">${item.source}</span>`}
+            </td>
+            <td class="px-6 py-4 text-right">
+              ${!item.isMain ? `
+                <input type="number" 
+                       value="${item.amount}" 
+                       onchange="saveIncomeEdit(${idx}, 'amount', this.value)" 
+                       class="bg-transparent border-b border-transparent hover:border-gray-300 focus:border-emerald-500 focus:bg-white text-right px-1 py-0.5 rounded w-28 font-bold text-emerald-600">
+              ` : `<span class="font-bold text-emerald-600">${parseFloat(item.amount || 0).toLocaleString()} EGP</span>`}
+            </td>
             <td class="px-6 py-4 text-center">
               ${!item.isMain ? `
                 <button onclick="deleteIncome(${idx})" class="text-red-500 hover:text-red-700 hover:bg-red-50 p-1.5 rounded transition-colors" title="Delete Extra Income">
@@ -489,7 +572,7 @@
       });
     }
 
-    // Auto Sync
+    // Auto Sync Timer
     function startCountdown() {
       countdown = 30;
       const label = document.getElementById('sync-timer-label');
