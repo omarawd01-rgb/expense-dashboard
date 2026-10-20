@@ -125,11 +125,12 @@
             <tr>
               <th class="px-6 py-3">Income Source / Description</th>
               <th class="px-6 py-3 text-right">Amount</th>
+              <th class="px-6 py-3 text-center w-24">Actions</th>
             </tr>
           </thead>
           <tbody id="income-table-body" class="divide-y divide-gray-100">
             <tr>
-              <td colspan="2" class="px-6 py-8 text-center text-gray-400">Loading income data...</td>
+              <td colspan="3" class="px-6 py-8 text-center text-gray-400">Loading income data...</td>
             </tr>
           </tbody>
         </table>
@@ -193,7 +194,6 @@
     let topExpensesChartInstance = null;
     let paidChartInstance = null;
 
-    // Data Fetcher
     async function fetchData() {
       const refreshIcon = document.getElementById('refresh-icon');
       if (refreshIcon) refreshIcon.classList.add('animate-spin');
@@ -211,12 +211,10 @@
       }
     }
 
-    // Data Parser for Side-by-Side Google Sheets Layout
     function parseData(data) {
-      // 1. Total Income directly from Cell E5
       totalIncome = parseFloat(data.totalIncome) || 0;
 
-      // 2. Parse Expenses (Cols A, B, C)
+      // Expenses
       allExpenses = [];
       const expRows = data.expenses || [];
 
@@ -230,19 +228,17 @@
         }
       });
 
-      // Sort Expenses Highest to Lowest
       allExpenses.sort((a, b) => b.amount - a.amount);
 
-      // 3. Set Income Items Breakdown
+      // Income List
       allIncome = data.incomeList || [];
 
-      // Update UI components
       updateMetricsAndCharts();
       renderTable();
       renderIncomeTable();
     }
 
-    // Modal Control Functions
+    // Modal Display Controls
     function openAddModal() {
       document.getElementById('add-modal').classList.remove('hidden');
       document.getElementById('add-modal').classList.add('flex');
@@ -266,7 +262,7 @@
       document.getElementById('inc-amount').value = '';
     }
 
-    // API Handlers
+    // Add Operations
     async function submitNewExpense() {
       const desc = document.getElementById('new-desc').value.trim();
       const amount = parseFloat(document.getElementById('new-amount').value);
@@ -322,6 +318,38 @@
       }
     }
 
+    // Delete Operations
+    async function deleteExpense(globalIndex) {
+      const item = allExpenses[globalIndex];
+      if (!confirm(`Are you sure you want to delete "${item.desc}"?`)) return;
+
+      try {
+        await fetch(`${WEB_APP_URL}?action=deleteExpense&row=${item.rowIndex}`, { mode: 'no-cors' });
+        await fetchData();
+      } catch (err) {
+        console.error('Delete expense failed:', err);
+        alert('Failed to delete expense.');
+      }
+    }
+
+    async function deleteIncome(index) {
+      const item = allIncome[index];
+      if (item.isMain) {
+        alert('Main salary/rental entries are locked in top header cells and cannot be deleted from here.');
+        return;
+      }
+
+      if (!confirm(`Are you sure you want to delete extra income "${item.source}"?`)) return;
+
+      try {
+        await fetch(`${WEB_APP_URL}?action=deleteIncome&row=${item.rowIndex}`, { mode: 'no-cors' });
+        await fetchData();
+      } catch (err) {
+        console.error('Delete income failed:', err);
+        alert('Failed to delete income entry.');
+      }
+    }
+
     async function togglePaidStatus(index) {
       const item = allExpenses[index];
       item.isPaid = !item.isPaid;
@@ -335,7 +363,7 @@
       }
     }
 
-    // KPI & Metrics Computation Engine
+    // Calculation Engine
     function updateMetricsAndCharts() {
       let expensesPlanned = 0;
       let paidSoFar = 0;
@@ -360,7 +388,7 @@
       renderTopExpensesChart();
     }
 
-    // Table Renderers
+    // Render Tables
     function renderTable() {
       const tbody = document.getElementById('table-body');
       const start = (currentPage - 1) * pageSize;
@@ -385,7 +413,9 @@
               <td class="px-6 py-4 text-gray-800 font-medium ${r.isPaid ? 'line-through text-gray-400' : ''}">${r.desc}</td>
               <td class="px-6 py-4 text-right font-semibold text-gray-900">${r.amount.toLocaleString()} EGP</td>
               <td class="px-6 py-4 text-center">
-                <span class="text-xs text-gray-400">Row ${r.rowIndex}</span>
+                <button onclick="deleteExpense(${globalIdx})" class="text-red-500 hover:text-red-700 hover:bg-red-50 p-1.5 rounded transition-colors" title="Delete Expense">
+                  <svg class="w-4 h-4 fill-current" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                </button>
               </td>
             </tr>
           `;
@@ -400,12 +430,19 @@
     function renderIncomeTable() {
       const tbody = document.getElementById('income-table-body');
       if (!allIncome || allIncome.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="2" class="px-6 py-8 text-center text-gray-400">No income details available.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="3" class="px-6 py-8 text-center text-gray-400">No income details available.</td></tr>`;
       } else {
-        tbody.innerHTML = allIncome.map((item) => `
+        tbody.innerHTML = allIncome.map((item, idx) => `
           <tr class="hover:bg-gray-50 transition-colors">
             <td class="px-6 py-4 font-medium text-gray-800">${item.source}</td>
             <td class="px-6 py-4 text-right font-bold text-emerald-600">${parseFloat(item.amount || 0).toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 2})} EGP</td>
+            <td class="px-6 py-4 text-center">
+              ${!item.isMain ? `
+                <button onclick="deleteIncome(${idx})" class="text-red-500 hover:text-red-700 hover:bg-red-50 p-1.5 rounded transition-colors" title="Delete Extra Income">
+                  <svg class="w-4 h-4 fill-current" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                </button>
+              ` : '<span class="text-xs text-gray-400">Main</span>'}
+            </td>
           </tr>
         `).join('');
       }
@@ -416,7 +453,7 @@
       renderTable();
     }
 
-    // Chart.js Visualizations
+    // Chart Visualizations
     function renderPaidChart(paid, remaining) {
       const ctx = document.getElementById('paidChart').getContext('2d');
       if (paidChartInstance) paidChartInstance.destroy();
@@ -452,7 +489,7 @@
       });
     }
 
-    // Auto-Sync Countdown Loop (30 seconds)
+    // Auto Sync
     function startCountdown() {
       countdown = 30;
       const label = document.getElementById('sync-timer-label');
@@ -475,7 +512,6 @@
       startCountdown();
     }
 
-    // Initialize application
     fetchData();
     startCountdown();
   </script>
