@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
   <title>Live Interactive Expense & Income Dashboard</title>
   
-  <!-- PWA & Mobile Web App Meta -->
   <link rel="manifest" href="./manifest.json">
   <meta name="theme-color" content="#4f46e5">
   <meta name="mobile-web-app-capable" content="yes">
@@ -13,35 +12,19 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Expenses">
   <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🥷</text></svg>">
-
-  <!-- Ninja Emoji Favicon -->
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🥷</text></svg>">
 
-  <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
-    tailwind.config = {
-      darkMode: 'class',
-    }
+    tailwind.config = { darkMode: 'class' };
   </script>
-
-  <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <style>
-    .custom-scrollbar::-webkit-scrollbar {
-      width: 5px;
-    }
-    .custom-scrollbar::-webkit-scrollbar-track {
-      background: transparent;
-    }
-    .custom-scrollbar::-webkit-scrollbar-thumb {
-      background: #cbd5e1;
-      border-radius: 4px;
-    }
-    .dark .custom-scrollbar::-webkit-scrollbar-thumb {
-      background: #475569;
-    }
+    .custom-scrollbar::-webkit-scrollbar { width: 5px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    .dark .custom-scrollbar::-webkit-scrollbar-thumb { background: #475569; }
 
     @keyframes checkPop {
       0% { transform: scale(1); }
@@ -52,61 +35,40 @@
       animation: checkPop 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     }
 
-    /* Print View for Clean PDF Export */
     @media print {
-      header, #mobile-container, #side-container, .no-print, button {
-        display: none !important;
-      }
-      body {
-        background: white !important;
-        color: black !important;
-        padding: 0 !important;
-      }
-      #desktop-container {
-        display: block !important;
-      }
-      .print-only-header {
-        display: block !important;
-        margin-bottom: 20px;
-      }
+      header, #mobile-container, #side-container, .no-print, button { display: none !important; }
+      body { background: white !important; color: black !important; padding: 0 !important; }
+      #desktop-container { display: block !important; }
+      .print-only-header { display: block !important; margin-bottom: 20px; }
     }
-    .print-only-header {
-      display: none;
-    }
+    .print-only-header { display: none; }
   </style>
 </head>
 <body class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-100 font-sans min-h-screen pb-12 transition-colors duration-200">
 
-  <!-- Print Only Header -->
   <div class="print-only-header text-center border-b pb-4">
     <h1 class="text-2xl font-bold">Monthly Expense & Income Statement</h1>
     <p id="print-month-label" class="text-sm text-gray-500 font-semibold"></p>
   </div>
 
-  <!-- Top Header Navigation Bar -->
   <header class="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 sticky top-0 z-30">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-col md:flex-row justify-between items-center gap-3">
       
-      <!-- Brand & Month Selector -->
       <div class="flex items-center justify-between w-full md:w-auto gap-4">
         <div class="flex items-center gap-2">
           <span class="text-2xl">🥷</span>
           <div>
             <h1 class="text-lg font-bold text-gray-900 dark:text-white leading-tight">Expense & Income</h1>
-            <p class="text-xs text-gray-500 dark:text-gray-400">Live Partial Expense & Sheet Sync</p>
+            <p class="text-xs text-gray-500 dark:text-gray-400">Live Google Sheet Sync</p>
           </div>
         </div>
 
-        <!-- Month Dropdown Selector -->
         <div class="relative">
           <select id="month-selector" onchange="onMonthChange(this.value)" class="bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white text-xs font-semibold rounded-lg px-2.5 py-1.5 focus:ring-indigo-500 focus:border-indigo-500">
-            <option value="October 2026">October 2026</option>
-            <option value="September 2026">September 2026</option>
-            <option value="August 2026">August 2026</option>
+            <option value="">Loading sheets...</option>
           </select>
         </div>
 
-        <!-- Mobile-only controls -->
         <div class="flex items-center gap-1.5 md:hidden">
           <button onclick="toggleSound()" class="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200" title="Toggle Sound">
             <span class="sound-toggle-icon">🔔</span>
@@ -122,7 +84,6 @@
         </div>
       </div>
 
-      <!-- View Mode Switcher Pills -->
       <div class="bg-gray-100 dark:bg-gray-700/60 p-1 rounded-xl flex items-center gap-1 border border-gray-200 dark:border-gray-600 text-xs font-semibold">
         <button id="btn-view-desktop" onclick="setViewMode('desktop')" class="px-3 py-1.5 rounded-lg transition-all shadow-sm bg-white dark:bg-gray-800 text-indigo-600 dark:text-indigo-400 font-bold">
           💻 Desktop
@@ -135,26 +96,22 @@
         </button>
       </div>
 
-      <!-- Right Action Toolbar -->
       <div class="hidden md:flex items-center gap-2">
         <span class="text-xs text-gray-500 dark:text-gray-400 font-mono mr-1" id="sync-timer-label">Next: 30s</span>
         
-        <!-- Export Actions -->
         <div class="flex items-center gap-1">
-          <button onclick="exportToCSV()" class="bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 text-xs font-semibold px-2.5 py-2 rounded-lg transition-colors border border-gray-200 dark:border-gray-600" title="Export CSV">
+          <button onclick="exportToCSV()" class="bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 text-xs font-semibold px-2.5 py-2 rounded-lg border border-gray-200 dark:border-gray-600" title="Export CSV">
             📄 CSV
           </button>
-          <button onclick="exportToPDF()" class="bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 text-xs font-semibold px-2.5 py-2 rounded-lg transition-colors border border-gray-200 dark:border-gray-600" title="Export PDF Statement">
+          <button onclick="exportToPDF()" class="bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 text-xs font-semibold px-2.5 py-2 rounded-lg border border-gray-200 dark:border-gray-600" title="Export PDF Statement">
             🖨️ PDF
           </button>
         </div>
 
-        <!-- Sound Toggle -->
         <button onclick="toggleSound()" class="bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 font-medium text-xs px-2.5 py-2 rounded-lg border border-gray-200 dark:border-gray-600 flex items-center gap-1" title="Toggle Sound">
           <span class="sound-toggle-icon">🔔</span>
         </button>
 
-        <!-- Dark Mode Toggle -->
         <button onclick="toggleDarkMode()" class="bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-yellow-300 font-medium text-xs px-2.5 py-2 rounded-lg border border-gray-200 dark:border-gray-600 flex items-center gap-1" title="Toggle Theme">
           <span class="theme-icon">🌙</span>
         </button>
@@ -175,13 +132,10 @@
     </div>
   </header>
 
-  <!-- Main Container -->
   <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
 
-    <!-- DESKTOP CONTAINER -->
     <div id="desktop-container" class="space-y-8">
 
-      <!-- KPI Metric Cards Grid -->
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
           <span class="text-xs font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">Total Income</span>
@@ -209,13 +163,11 @@
         </div>
       </div>
 
-      <!-- Centered Spent vs Remaining Doughnut Chart -->
       <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 max-w-xl mx-auto">
         <h2 class="text-base font-bold text-gray-800 dark:text-white mb-2 text-center">Spent vs Remaining Budget</h2>
         <div class="relative h-64"><canvas id="paidChartDesktop"></canvas></div>
       </div>
 
-      <!-- Expenses Checklist Table -->
       <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
         <div class="p-4 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-700/50">
           <h2 class="text-base font-bold text-gray-800 dark:text-white">Expenses Checklist (Largest to Smallest Budget)</h2>
@@ -251,7 +203,6 @@
         </div>
       </div>
 
-      <!-- Income Breakdown Table -->
       <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
         <div class="p-4 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-emerald-50/50 dark:bg-emerald-900/20">
           <h2 class="text-base font-bold text-emerald-900 dark:text-emerald-300">Income Details Breakdown</h2>
@@ -280,20 +231,13 @@
 
     </div>
 
-    <!-- MOBILE SIMULATOR CONTAINER -->
     <div id="mobile-container" class="hidden flex-col items-center justify-center py-4">
-      
-      <!-- Phone Mockup Frame -->
       <div class="w-full max-w-[390px] h-[780px] bg-white dark:bg-gray-800 rounded-[40px] shadow-2xl border-[10px] border-gray-900 dark:border-gray-700 flex flex-col overflow-hidden relative">
-        
         <div class="w-full bg-gray-900 dark:bg-gray-700 h-6 flex justify-center items-center rounded-t-[30px] shrink-0">
           <div class="w-16 h-3 bg-gray-800 dark:bg-gray-900 rounded-full"></div>
         </div>
 
-        <!-- Phone Content -->
         <div class="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-4">
-          
-          <!-- Compact Mobile KPI Grid -->
           <div class="grid grid-cols-2 gap-2.5">
             <div class="bg-gray-50 dark:bg-gray-700/50 p-3 rounded-xl border border-gray-100 dark:border-gray-600">
               <span class="text-[10px] font-semibold uppercase text-emerald-600 dark:text-emerald-400">Income</span>
@@ -321,7 +265,6 @@
             </div>
           </div>
 
-          <!-- Mobile Tab Switcher -->
           <div class="bg-gray-100 dark:bg-gray-700 p-1 rounded-lg flex text-xs font-semibold">
             <button id="mob-tab-exp" onclick="switchMobileTab('exp')" class="flex-1 py-1.5 rounded-md bg-white dark:bg-gray-800 text-indigo-600 dark:text-indigo-400 shadow-sm transition-all text-center">
               Expenses Checklist
@@ -331,7 +274,6 @@
             </button>
           </div>
 
-          <!-- Mobile Expenses View -->
           <div id="mob-view-exp" class="space-y-3">
             <div class="flex justify-between items-center px-1">
               <span class="text-xs font-bold text-gray-700 dark:text-gray-300">Item Details</span>
@@ -342,7 +284,6 @@
             </div>
           </div>
 
-          <!-- Mobile Income View -->
           <div id="mob-view-inc" class="space-y-3 hidden">
             <div class="flex justify-between items-center px-1">
               <span class="text-xs font-bold text-gray-700 dark:text-gray-300">Income Sources</span>
@@ -351,10 +292,8 @@
               <div class="text-center text-xs text-gray-400 py-6">Loading income breakdown...</div>
             </div>
           </div>
-
         </div>
 
-        <!-- Floating Action Button (FAB) -->
         <div class="absolute bottom-5 right-5 z-20">
           <div id="fab-menu" class="hidden mb-2 flex-col gap-2">
             <button onclick="openIncomeModal(); toggleFabMenu();" class="bg-blue-600 text-white p-3 rounded-full shadow-lg text-xs flex items-center gap-2 font-semibold">
@@ -372,11 +311,9 @@
         <div class="w-full bg-white dark:bg-gray-800 py-2 flex justify-center shrink-0 border-t border-gray-100 dark:border-gray-700">
           <div class="w-32 h-1 bg-gray-300 dark:bg-gray-600 rounded-full"></div>
         </div>
-
       </div>
     </div>
 
-    <!-- SIDE-BY-SIDE CONTAINER -->
     <div id="side-container" class="hidden grid-cols-1 lg:grid-cols-12 gap-8">
       <div class="lg:col-span-7 space-y-6">
         <div class="bg-indigo-50 dark:bg-indigo-900/20 p-3 rounded-xl border border-indigo-100 dark:border-indigo-800 text-xs font-semibold text-indigo-700 dark:text-indigo-300 text-center">
@@ -408,8 +345,7 @@
             📱 Mobile Simulator
           </div>
           <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 p-4 space-y-3">
-            <div id="side-mobile-cards" class="space-y-2">
-            </div>
+            <div id="side-mobile-cards" class="space-y-2"></div>
           </div>
         </div>
       </div>
@@ -417,7 +353,6 @@
 
   </main>
 
-  <!-- Add Expense Modal -->
   <div id="add-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50 p-4">
     <div class="bg-white dark:bg-gray-800 rounded-xl max-w-md w-full p-6 shadow-xl space-y-4 border dark:border-gray-700">
       <h3 class="text-lg font-bold text-gray-900 dark:text-white">Add New Expense</h3>
@@ -444,7 +379,6 @@
     </div>
   </div>
 
-  <!-- Add Income Modal -->
   <div id="income-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50 p-4">
     <div class="bg-white dark:bg-gray-800 rounded-xl max-w-md w-full p-6 shadow-xl space-y-4 border dark:border-gray-700">
       <h3 class="text-lg font-bold text-gray-900 dark:text-white">Add Extra Income</h3>
@@ -466,70 +400,35 @@
   <script>
     const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbx6rMQRvEbfn4h9VENhSSQvN2k6fmw5KTw0FSLf0NlIrEjoG-xdhVGJcRmFv6f_ejRW5Q/exec';
 
-    // State Variables
     let allExpenses = [];
     let allIncome = [];
-    let totalIncome = 38339.4;
+    let totalIncome = 0;
     let currentPage = 1;
     const pageSize = 15;
     let countdown = 30;
     let currentViewMode = 'desktop';
-    let currentMonth = localStorage.getItem('currentMonth') || 'October 2026';
+    let currentMonth = localStorage.getItem('currentMonth') || '';
 
     let paidChartInstance = null;
     let audioCtx = null;
     let isSoundEnabled = localStorage.getItem('soundEnabled') !== 'false';
 
-    // Sample fallback data
-    const SAMPLE_EXPENSES = [
-      { rowIndex: 2, desc: 'Rent', amount: 13200, spent: 13200 },
-      { rowIndex: 3, desc: 'Real estate financing Mortgage Payment', amount: 2650, spent: 2650 },
-      { rowIndex: 4, desc: 'Hangouts', amount: 2000, spent: 500 },
-      { rowIndex: 5, desc: 'Home pocket money', amount: 2000, spent: 1000 },
-      { rowIndex: 6, desc: 'Internet 🌐', amount: 1500, spent: 1500 },
-      { rowIndex: 7, desc: 'tires ⚙️', amount: 1500, spent: 0 },
-      { rowIndex: 8, desc: '⛽ Fuel', amount: 1000, spent: 500 },
-      { rowIndex: 9, desc: 'Vodafone', amount: 750, spent: 750 },
-      { rowIndex: 10, desc: 'Stairs', amount: 400, spent: 200 },
-      { rowIndex: 11, desc: 'Gas Tube', amount: 350, spent: 0 },
-      { rowIndex: 12, desc: '⚡ Electricity', amount: 200, spent: 200 },
-      { rowIndex: 13, desc: 'Car Wash 🌸', amount: 200, spent: 0 }
-    ];
-
-    const SAMPLE_INCOME = [
-      { source: 'Monthly salary (550 USD)', amount: 29960.4, isMain: true, rowIndex: 3 },
-      { source: 'House rental income', amount: 6500, isMain: true, rowIndex: 4 },
-      { source: 'PH', amount: 979, isMain: false, rowIndex: 12 },
-      { source: 'Previous month remaining balance', amount: 500, isMain: false, rowIndex: 13 },
-      { source: 'Stairs', amount: 400, isMain: false, rowIndex: 14 }
-    ];
-
-    // Priority Sort: Unpaid on top, Paid at bottom; sorted biggest to smallest amount within groups
     function sortExpenses() {
       allExpenses.sort((a, b) => {
         const aPaid = (a.spent >= a.amount && a.amount > 0) ? 1 : 0;
         const bPaid = (b.spent >= b.amount && b.amount > 0) ? 1 : 0;
-
-        if (aPaid !== bPaid) {
-          return aPaid - bPaid;
-        }
-
-        if (b.amount !== a.amount) {
-          return b.amount - a.amount;
-        }
-
+        if (aPaid !== bPaid) return aPaid - bPaid;
+        if (b.amount !== a.amount) return b.amount - a.amount;
         return (a.rowIndex || 0) - (b.rowIndex || 0);
       });
     }
 
-    // Month Selector Change
     function onMonthChange(selectedMonth) {
       currentMonth = selectedMonth;
       localStorage.setItem('currentMonth', currentMonth);
       fetchData();
     }
 
-    // Audio Chime
     function toggleSound() {
       isSoundEnabled = !isSoundEnabled;
       localStorage.setItem('soundEnabled', isSoundEnabled ? 'true' : 'false');
@@ -543,25 +442,20 @@
 
     function playPaidSound() {
       if (!isSoundEnabled) return;
-
       try {
         const AudioContext = window.AudioContext || window.webkitAudioContext;
         if (!AudioContext) return;
-        
         if (!audioCtx) audioCtx = new AudioContext();
         if (audioCtx.state === 'suspended') audioCtx.resume();
 
         const now = audioCtx.currentTime;
-
         const osc1 = audioCtx.createOscillator();
         const gain1 = audioCtx.createGain();
         osc1.type = 'sine';
         osc1.frequency.setValueAtTime(698.46, now);
         osc1.frequency.exponentialRampToValueAtTime(880, now + 0.12);
-
         gain1.gain.setValueAtTime(0.15, now);
         gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
-
         osc1.connect(gain1);
         gain1.connect(audioCtx.destination);
 
@@ -569,10 +463,8 @@
         const gain2 = audioCtx.createGain();
         osc2.type = 'sine';
         osc2.frequency.setValueAtTime(1046.5, now + 0.05);
-
         gain2.gain.setValueAtTime(0.08, now + 0.05);
         gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
-
         osc2.connect(gain2);
         gain2.connect(audioCtx.destination);
 
@@ -585,11 +477,9 @@
       }
     }
 
-    // Dark Mode Controller
     function toggleDarkMode() {
       const html = document.documentElement;
       const isDark = html.classList.contains('dark');
-      
       if (isDark) {
         html.classList.remove('dark');
         localStorage.setItem('theme', 'light');
@@ -599,7 +489,6 @@
         localStorage.setItem('theme', 'dark');
         document.querySelectorAll('.theme-icon').forEach(el => el.innerText = '☀️');
       }
-      
       updateMetricsAndCharts();
     }
 
@@ -608,14 +497,11 @@
       document.querySelectorAll('.theme-icon').forEach(el => el.innerText = '☀️');
     }
 
-    // View Mode Switcher
     function setViewMode(mode) {
       currentViewMode = mode;
-      
       const btnDesktop = document.getElementById('btn-view-desktop');
       const btnMobile = document.getElementById('btn-view-mobile');
       const btnSide = document.getElementById('btn-view-side');
-
       const containerDesktop = document.getElementById('desktop-container');
       const containerMobile = document.getElementById('mobile-container');
       const containerSide = document.getElementById('side-container');
@@ -642,7 +528,6 @@
         containerSide.classList.remove('hidden');
         containerSide.classList.add('grid');
       }
-
       updateMetricsAndCharts();
     }
 
@@ -683,15 +568,12 @@
     async function fetchData() {
       const refreshIcon = document.getElementById('refresh-icon');
       const refreshIconMob = document.getElementById('refresh-icon-mob');
-
       if (refreshIcon) refreshIcon.classList.add('animate-spin');
       if (refreshIconMob) refreshIconMob.classList.add('animate-spin');
 
-      const printLabel = document.getElementById('print-month-label');
-      if (printLabel) printLabel.innerText = `Billing Period: ${currentMonth}`;
-
       try {
-        const response = await fetch(`${WEB_APP_URL}?action=getData&sheetName=${encodeURIComponent(currentMonth)}`);
+        const url = `${WEB_APP_URL}?action=getData` + (currentMonth ? `&sheetName=${encodeURIComponent(currentMonth)}` : '');
+        const response = await fetch(url);
         const payload = await response.json();
         
         if (refreshIcon) refreshIcon.classList.remove('animate-spin');
@@ -702,50 +584,43 @@
       } catch (err) {
         if (refreshIcon) refreshIcon.classList.remove('animate-spin');
         if (refreshIconMob) refreshIconMob.classList.remove('animate-spin');
-
-        console.warn('Using sample fallback data:', err);
-        allExpenses = [...SAMPLE_EXPENSES];
-        allIncome = [...SAMPLE_INCOME];
-        totalIncome = 38339.4;
-        sortExpenses();
-        updateMetricsAndCharts();
-        renderTable();
-        renderIncomeTable();
-        renderMobileCards();
+        console.error('Fetch failed:', err);
       }
     }
 
     function parseData(data) {
-      totalIncome = parseFloat(data.totalIncome) || 0;
+      if (data.currentSheet) {
+        currentMonth = data.currentSheet;
+        localStorage.setItem('currentMonth', currentMonth);
+      }
+
+      const printLabel = document.getElementById('print-month-label');
+      if (printLabel) printLabel.innerText = `Billing Period: ${currentMonth}`;
 
       if (data.sheets && data.sheets.length > 0) {
         const selector = document.getElementById('month-selector');
         if (selector) {
           selector.innerHTML = data.sheets
-            .filter(name => !name.startsWith('_'))
             .map(s => `<option value="${s}" ${s === currentMonth ? 'selected' : ''}>${s}</option>`)
             .join('');
         }
       }
 
+      totalIncome = parseFloat(data.totalIncome) || 0;
+
       allExpenses = [];
       const expRows = data.expenses || [];
-
       expRows.forEach((row, idx) => {
-        const rawStatus = row[0];
-        const planned = parseFloat(String(row[1] || '0').replace(/[^0-9.-]+/g, "")) || 0;
+        const planned = parseFloat(row[1]) || 0;
         const desc = String(row[2] || '').trim();
-        let spent = parseFloat(String(row[3] !== undefined ? row[3] : (rawStatus === true ? planned : 0)).replace(/[^0-9.-]+/g, "")) || 0;
-
-        if (planned > 0 && desc !== '') {
+        const spent = parseFloat(row[3]) || 0;
+        if (desc !== '' || planned > 0) {
           allExpenses.push({ rowIndex: idx + 2, desc, amount: planned, spent });
         }
       });
 
-      if (allExpenses.length === 0) allExpenses = [...SAMPLE_EXPENSES];
       sortExpenses();
-
-      allIncome = data.incomeList && data.incomeList.length > 0 ? data.incomeList : [...SAMPLE_INCOME];
+      allIncome = data.incomeList || [];
 
       updateMetricsAndCharts();
       renderTable();
@@ -753,7 +628,6 @@
       renderMobileCards();
     }
 
-    // Modal Display Controls
     function openAddModal() {
       document.getElementById('add-modal').classList.remove('hidden');
       document.getElementById('add-modal').classList.add('flex');
@@ -778,17 +652,15 @@
       document.getElementById('inc-amount').value = '';
     }
 
-    // Submit Actions
     async function submitNewExpense() {
       const desc = document.getElementById('new-desc').value.trim();
       const amount = parseFloat(document.getElementById('new-amount').value) || 0;
       let spent = parseFloat(document.getElementById('new-spent').value) || 0;
       const isPaid = document.getElementById('new-status').checked;
-
       if (isPaid && spent === 0) spent = amount;
 
       if (!desc || amount <= 0) {
-        alert('Please enter a valid description and planned budget amount.');
+        alert('Please enter a valid description and budget amount.');
         return;
       }
 
@@ -802,12 +674,7 @@
         closeAddModal();
         await fetchData();
       } catch (err) {
-        allExpenses.push({ rowIndex: allExpenses.length + 2, desc, amount, spent });
-        sortExpenses();
-        closeAddModal();
-        updateMetricsAndCharts();
-        renderTable();
-        renderMobileCards();
+        console.error(err);
       } finally {
         btn.innerText = 'Add Expense';
         btn.disabled = false;
@@ -833,19 +700,13 @@
         closeIncomeModal();
         await fetchData();
       } catch (err) {
-        allIncome.push({ source, amount, isMain: false, rowIndex: allIncome.length + 12 });
-        totalIncome += amount;
-        closeIncomeModal();
-        updateMetricsAndCharts();
-        renderIncomeTable();
-        renderMobileCards();
+        console.error(err);
       } finally {
         btn.innerText = 'Add Income';
         btn.disabled = false;
       }
     }
 
-    // Inline Edit Operations
     async function saveExpenseEdit(globalIndex, field, value) {
       const item = allExpenses[globalIndex];
       const originalValue = item[field];
@@ -859,7 +720,6 @@
       }
 
       if (value === originalValue) return;
-
       item[field] = value;
       
       if (field === 'amount' || field === 'spent') {
@@ -874,7 +734,7 @@
         const url = `${WEB_APP_URL}?action=editExpense&sheetName=${encodeURIComponent(currentMonth)}&row=${item.rowIndex}&${field}=${encodeURIComponent(value)}`;
         await fetch(url, { mode: 'no-cors' });
       } catch (err) {
-        console.log('Local optimistic expense edit:', field, value);
+        console.log('Optimistic edit saved locally');
       }
     }
 
@@ -883,7 +743,6 @@
       if (item.isMain) return;
       
       const originalValue = item[field];
-
       if (field === 'amount') {
         value = parseFloat(value);
         if (isNaN(value) || value <= 0) return;
@@ -893,7 +752,6 @@
       }
 
       if (value === originalValue) return;
-
       item[field] = value;
       updateMetricsAndCharts();
 
@@ -902,11 +760,10 @@
         await fetch(url, { mode: 'no-cors' });
         await fetchData();
       } catch (err) {
-        console.log('Local optimistic income edit:', field, value);
+        console.log('Optimistic income edit saved locally');
       }
     }
 
-    // Delete Operations
     async function deleteExpense(globalIndex) {
       const item = allExpenses[globalIndex];
       if (!confirm(`Are you sure you want to delete "${item.desc}"?`)) return;
@@ -926,7 +783,7 @@
     async function deleteIncome(index) {
       const item = allIncome[index];
       if (item.isMain) {
-        alert('Main salary/rental entries are locked in top header cells.');
+        alert('Main salary/rental entries are fixed cells.');
         return;
       }
 
@@ -943,17 +800,13 @@
       }
     }
 
-    // Quick Mark Fully Paid / Clear Toggle
     async function quickToggleFullyPaid(globalIndex, event) {
       const item = allExpenses[globalIndex];
       const isFullyPaid = item.spent >= item.amount && item.amount > 0;
       const willBePaid = !isFullyPaid;
       
       item.spent = willBePaid ? item.amount : 0;
-      
-      if (willBePaid) {
-        playPaidSound();
-      }
+      if (willBePaid) playPaidSound();
 
       if (event && event.currentTarget) {
         event.currentTarget.classList.add('check-popped');
@@ -968,11 +821,10 @@
         const url = `${WEB_APP_URL}?action=editExpense&sheetName=${encodeURIComponent(currentMonth)}&row=${item.rowIndex}&spent=${item.spent}&status=${willBePaid}`;
         await fetch(url, { mode: 'no-cors' });
       } catch (e) {
-        console.log('Local toggle status:', item.spent);
+        console.log('Status updated locally');
       }
     }
 
-    // Metrics Calculator
     function updateMetricsAndCharts() {
       let expensesPlanned = 0;
       let spentSoFar = 0;
@@ -1006,7 +858,6 @@
       }
     }
 
-    // Render Desktop Table
     function renderTable() {
       const tbody = document.getElementById('desktop-table-body');
       const sideTbody = document.getElementById('side-desktop-tbody');
@@ -1015,7 +866,7 @@
       const pageItems = allExpenses.slice(start, end);
 
       if (pageItems.length === 0) {
-        if (tbody) tbody.innerHTML = `<tr><td colspan="6" class="px-6 py-8 text-center text-gray-400">No expenses recorded.</td></tr>`;
+        if (tbody) tbody.innerHTML = `<tr><td colspan="6" class="px-6 py-8 text-center text-gray-400">No expenses recorded in this sheet.</td></tr>`;
         if (sideTbody) sideTbody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-gray-400">No expenses recorded.</td></tr>`;
       } else {
         const rowsHtml = pageItems.map((r, pageIdx) => {
@@ -1034,22 +885,13 @@
                 </div>
               </td>
               <td class="px-4 py-3">
-                <input type="text" 
-                       value="${r.desc}" 
-                       onchange="saveExpenseEdit(${globalIdx}, 'desc', this.value)" 
-                       class="bg-transparent border-b border-transparent hover:border-gray-300 dark:hover:border-gray-500 focus:border-indigo-500 focus:bg-white dark:focus:bg-gray-700 px-1 py-0.5 rounded w-full font-medium ${isFullyPaid ? 'line-through text-gray-400' : 'text-gray-800 dark:text-gray-200'}">
+                <input type="text" value="${r.desc}" onchange="saveExpenseEdit(${globalIdx}, 'desc', this.value)" class="bg-transparent border-b border-transparent hover:border-gray-300 dark:hover:border-gray-500 focus:border-indigo-500 focus:bg-white dark:focus:bg-gray-700 px-1 py-0.5 rounded w-full font-medium ${isFullyPaid ? 'line-through text-gray-400' : 'text-gray-800 dark:text-gray-200'}">
               </td>
               <td class="px-4 py-3 text-right">
-                <input type="number" 
-                       value="${r.amount}" 
-                       onchange="saveExpenseEdit(${globalIdx}, 'amount', this.value)" 
-                       class="bg-transparent border-b border-transparent hover:border-gray-300 dark:hover:border-gray-500 focus:border-indigo-500 focus:bg-white dark:focus:bg-gray-700 text-right px-1 py-0.5 rounded w-24 font-semibold text-gray-900 dark:text-white">
+                <input type="number" value="${r.amount}" onchange="saveExpenseEdit(${globalIdx}, 'amount', this.value)" class="bg-transparent border-b border-transparent hover:border-gray-300 dark:hover:border-gray-500 focus:border-indigo-500 focus:bg-white dark:focus:bg-gray-700 text-right px-1 py-0.5 rounded w-24 font-semibold text-gray-900 dark:text-white">
               </td>
               <td class="px-4 py-3 text-right">
-                <input type="number" 
-                       value="${r.spent}" 
-                       onchange="saveExpenseEdit(${globalIdx}, 'spent', this.value)" 
-                       class="bg-transparent border-b border-transparent hover:border-gray-300 dark:hover:border-gray-500 focus:border-blue-500 focus:bg-white dark:focus:bg-gray-700 text-right px-1 py-0.5 rounded w-24 font-bold text-blue-600 dark:text-blue-400">
+                <input type="number" value="${r.spent}" onchange="saveExpenseEdit(${globalIdx}, 'spent', this.value)" class="bg-transparent border-b border-transparent hover:border-gray-300 dark:hover:border-gray-500 focus:border-blue-500 focus:bg-white dark:focus:bg-gray-700 text-right px-1 py-0.5 rounded w-24 font-bold text-blue-600 dark:text-blue-400">
               </td>
               <td class="px-4 py-3 text-right font-semibold ${remaining === 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}">
                 ${remaining.toLocaleString()} EGP
@@ -1064,7 +906,6 @@
         }).join('');
 
         if (tbody) tbody.innerHTML = rowsHtml;
-
         if (sideTbody) {
           sideTbody.innerHTML = pageItems.slice(0, 6).map((r) => `
             <tr class="${r.spent >= r.amount && r.amount > 0 ? 'opacity-65' : ''}">
@@ -1080,37 +921,29 @@
 
       const pageInfo = document.getElementById('page-info');
       if (pageInfo) pageInfo.innerText = `Showing ${allExpenses.length === 0 ? 0 : start + 1}-${Math.min(end, allExpenses.length)} of ${allExpenses.length}`;
-      
       const prevBtn = document.getElementById('prev-btn');
       const nextBtn = document.getElementById('next-btn');
       if (prevBtn) prevBtn.disabled = currentPage === 1;
       if (nextBtn) nextBtn.disabled = end >= allExpenses.length;
     }
 
-    // Render Income Table
     function renderIncomeTable() {
       const tbody = document.getElementById('desktop-income-table-body');
       if (!tbody) return;
 
       if (!allIncome || allIncome.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="3" class="px-6 py-8 text-center text-gray-400">No income details available.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="3" class="px-6 py-8 text-center text-gray-400">No income details recorded in this sheet.</td></tr>`;
       } else {
         tbody.innerHTML = allIncome.map((item, idx) => `
           <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
             <td class="px-6 py-4">
               ${!item.isMain ? `
-                <input type="text" 
-                       value="${item.source}" 
-                       onchange="saveIncomeEdit(${idx}, 'source', this.value)" 
-                       class="bg-transparent border-b border-transparent hover:border-gray-300 dark:hover:border-gray-500 focus:border-emerald-500 focus:bg-white dark:focus:bg-gray-700 px-1 py-0.5 rounded w-full font-medium text-gray-800 dark:text-gray-200">
+                <input type="text" value="${item.source}" onchange="saveIncomeEdit(${idx}, 'source', this.value)" class="bg-transparent border-b border-transparent hover:border-gray-300 dark:hover:border-gray-500 focus:border-emerald-500 focus:bg-white dark:focus:bg-gray-700 px-1 py-0.5 rounded w-full font-medium text-gray-800 dark:text-gray-200">
               ` : `<span class="font-medium text-gray-800 dark:text-gray-200">${item.source}</span>`}
             </td>
             <td class="px-6 py-4 text-right">
               ${!item.isMain ? `
-                <input type="number" 
-                       value="${item.amount}" 
-                       onchange="saveIncomeEdit(${idx}, 'amount', this.value)" 
-                       class="bg-transparent border-b border-transparent hover:border-gray-300 dark:hover:border-gray-500 focus:border-emerald-500 focus:bg-white dark:focus:bg-gray-700 text-right px-1 py-0.5 rounded w-28 font-bold text-emerald-600 dark:text-emerald-400">
+                <input type="number" value="${item.amount}" onchange="saveIncomeEdit(${idx}, 'amount', this.value)" class="bg-transparent border-b border-transparent hover:border-gray-300 dark:hover:border-gray-500 focus:border-emerald-500 focus:bg-white dark:focus:bg-gray-700 text-right px-1 py-0.5 rounded w-28 font-bold text-emerald-600 dark:text-emerald-400">
               ` : `<span class="font-bold text-emerald-600 dark:text-emerald-400">${parseFloat(item.amount || 0).toLocaleString()} EGP</span>`}
             </td>
             <td class="px-6 py-4 text-center no-print">
@@ -1125,7 +958,6 @@
       }
     }
 
-    // Render Mobile Cards
     function renderMobileCards() {
       const expContainer = document.getElementById('mobile-expense-cards');
       const incContainer = document.getElementById('mobile-income-cards');
@@ -1152,11 +984,9 @@
                     <svg class="w-4 h-4 fill-current" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
                   </button>
                 </div>
-
                 <div>
                   <input type="text" value="${r.desc}" onchange="saveExpenseEdit(${idx}, 'desc', this.value)" class="bg-transparent border-b border-transparent focus:border-indigo-500 font-semibold text-xs text-gray-800 dark:text-gray-100 w-full ${isFullyPaid ? 'line-through text-gray-400' : ''}">
                 </div>
-
                 <div class="grid grid-cols-3 gap-1 pt-1 text-[11px] border-t border-gray-200/60 dark:border-gray-600/60">
                   <div>
                     <span class="block text-[9px] text-gray-400 uppercase">Planned</span>
@@ -1210,7 +1040,6 @@
       renderTable();
     }
 
-    // Chart Visualizations
     function renderPaidChart(paid, remaining) {
       const ctxDesktop = document.getElementById('paidChartDesktop')?.getContext('2d');
       if (!ctxDesktop) return;
@@ -1230,20 +1059,15 @@
           responsive: true, 
           maintainAspectRatio: false, 
           plugins: { 
-            legend: { 
-              position: 'bottom', 
-              labels: { color: textColor } 
-            } 
+            legend: { position: 'bottom', labels: { color: textColor } } 
           } 
         }
       });
     }
 
-    // Export to CSV Function
     function exportToCSV() {
       let csv = `Expense & Income Statement - ${currentMonth}\n\n`;
       csv += "EXPENSES\nStatus,Description,Planned Budget (EGP),Spent So Far (EGP),Remaining (EGP)\n";
-      
       allExpenses.forEach(e => {
         const status = e.spent >= e.amount ? "PAID" : (e.spent > 0 ? "PARTIAL" : "PENDING");
         const remaining = Math.max(0, e.amount - e.spent);
@@ -1264,22 +1088,17 @@
       URL.revokeObjectURL(url);
     }
 
-    // Export to PDF / Print Function
     function exportToPDF() {
       window.print();
     }
 
-    // Auto Sync Timer
     function startCountdown() {
       countdown = 30;
       const label = document.getElementById('sync-timer-label');
-      
       if (window.countdownInterval) clearInterval(window.countdownInterval);
-      
       window.countdownInterval = setInterval(() => {
         countdown--;
         if (label) label.innerText = `Next: ${countdown}s`;
-        
         if (countdown <= 0) {
           countdown = 30;
           fetchData();
@@ -1292,16 +1111,14 @@
       startCountdown();
     }
 
-    // Register Service Worker for PWA
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('./sw.js').catch(err => {
-          console.log('ServiceWorker registration error:', err);
+          console.log('ServiceWorker not registered:', err);
         });
       });
     }
 
-    // Startup Initialization
     updateSoundButtonUI();
     fetchData();
     startCountdown();
