@@ -64,10 +64,13 @@
 
         <!-- Mobile-only controls -->
         <div class="flex items-center gap-2 md:hidden">
-          <button onclick="toggleDarkMode()" class="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-yellow-300">
+          <button onclick="toggleSound()" class="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200" title="Toggle Sound">
+            <span class="sound-toggle-icon">🔔</span>
+          </button>
+          <button onclick="toggleDarkMode()" class="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-yellow-300" title="Toggle Theme">
             <span class="theme-icon">🌙</span>
           </button>
-          <button onclick="manualSync()" class="p-2 rounded-lg bg-indigo-600 text-white">
+          <button onclick="manualSync()" class="p-2 rounded-lg bg-indigo-600 text-white" title="Sync Now">
             <svg id="refresh-icon-mob" class="w-4 h-4 fill-current" viewBox="0 0 20 20">
               <path d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-.61-1.276z"/>
             </svg>
@@ -92,6 +95,12 @@
       <div class="hidden md:flex items-center gap-3">
         <span class="text-xs text-gray-500 dark:text-gray-400 font-mono" id="sync-timer-label">Next sync: 30s</span>
         
+        <!-- Sound Toggle Button -->
+        <button onclick="toggleSound()" class="bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 font-medium text-xs px-3 py-2 rounded-lg transition-colors border border-gray-200 dark:border-gray-600 flex items-center gap-1.5" title="Toggle Sound">
+          <span class="sound-toggle-icon">🔔</span>
+          <span class="hidden lg:inline sound-toggle-label">Sound On</span>
+        </button>
+
         <!-- Dark Mode Toggle Button -->
         <button onclick="toggleDarkMode()" class="bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-yellow-300 font-medium text-xs px-3 py-2 rounded-lg transition-colors border border-gray-200 dark:border-gray-600 flex items-center gap-1.5" title="Toggle Theme">
           <span class="theme-icon">🌙</span>
@@ -163,7 +172,7 @@
       <!-- Expenses Checklist Table -->
       <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
         <div class="p-4 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-700/50">
-          <h2 class="text-base font-bold text-gray-800 dark:text-white">Expenses Checklist (Edit Planned & Spent Amount directly)</h2>
+          <h2 class="text-base font-bold text-gray-800 dark:text-white">Expenses Checklist (Sorted Highest to Lowest Budget)</h2>
           <span class="text-xs text-gray-400 dark:text-gray-400 last-updated">Last sync: --</span>
         </div>
 
@@ -431,6 +440,9 @@
     let paidChartInstance = null;
     let audioCtx = null;
 
+    // Sound Preference State (Stored in localStorage)
+    let isSoundEnabled = localStorage.getItem('soundEnabled') !== 'false';
+
     // Sample Data with Partial Spend Tracking Support
     const SAMPLE_EXPENSES = [
       { rowIndex: 2, desc: '⚡ Electricity', amount: 200, spent: 200 },
@@ -456,7 +468,7 @@
     ];
 
     // Priority Sort: Unpaid/Partial at top, Fully Paid at the bottom.
-    // Within each group, items strictly preserve their original position via originalIndex.
+    // Within each group, items are strictly sorted from biggest to smallest amount.
     function sortExpenses() {
       allExpenses.sort((a, b) => {
         const aPaid = (a.spent >= a.amount && a.amount > 0) ? 1 : 0;
@@ -467,13 +479,35 @@
           return aPaid - bPaid;
         }
 
-        // 2. Exact original order restore
-        return (a.originalIndex ?? 0) - (b.originalIndex ?? 0);
+        // 2. Biggest planned budget to smallest
+        if (b.amount !== a.amount) {
+          return b.amount - a.amount;
+        }
+
+        // 3. Fallback tie-breaker: keep earlier items stable
+        return (a.rowIndex || 0) - (b.rowIndex || 0);
       });
+    }
+
+    // Sound Controller
+    function toggleSound() {
+      isSoundEnabled = !isSoundEnabled;
+      localStorage.setItem('soundEnabled', isSoundEnabled ? 'true' : 'false');
+      updateSoundButtonUI();
+    }
+
+    function updateSoundButtonUI() {
+      const icon = isSoundEnabled ? '🔔' : '🔕';
+      const labelText = isSoundEnabled ? 'Sound On' : 'Muted';
+
+      document.querySelectorAll('.sound-toggle-icon').forEach(el => el.innerText = icon);
+      document.querySelectorAll('.sound-toggle-label').forEach(el => el.innerText = labelText);
     }
 
     // Web Audio Synthesizer: Clean tactile payment chime
     function playPaidSound() {
+      if (!isSoundEnabled) return;
+
       try {
         const AudioContext = window.AudioContext || window.webkitAudioContext;
         if (!AudioContext) return;
@@ -636,7 +670,7 @@
         if (refreshIconMob) refreshIconMob.classList.remove('animate-spin');
 
         console.warn('Using sample fallback data:', err);
-        allExpenses = SAMPLE_EXPENSES.map((item, idx) => ({ ...item, originalIndex: idx }));
+        allExpenses = [...SAMPLE_EXPENSES];
         allIncome = [...SAMPLE_INCOME];
         totalIncome = 38339.4;
         sortExpenses();
@@ -664,14 +698,13 @@
             rowIndex: idx + 2, 
             desc, 
             amount: planned, 
-            spent,
-            originalIndex: allExpenses.length 
+            spent 
           });
         }
       });
 
       if (allExpenses.length === 0) {
-        allExpenses = SAMPLE_EXPENSES.map((item, idx) => ({ ...item, originalIndex: idx }));
+        allExpenses = [...SAMPLE_EXPENSES];
       }
       sortExpenses();
 
@@ -736,8 +769,7 @@
           rowIndex: allExpenses.length + 2, 
           desc, 
           amount, 
-          spent,
-          originalIndex: allExpenses.length 
+          spent 
         });
         sortExpenses();
         closeAddModal();
@@ -798,7 +830,7 @@
 
       item[field] = value;
       
-      // Auto-reorder if budget or spent changed threshold
+      // Auto-reorder immediately if amount or spent changes
       if (field === 'amount' || field === 'spent') {
         sortExpenses();
       }
@@ -886,7 +918,7 @@
       const isFullyPaid = item.spent >= item.amount && item.amount > 0;
       const willBePaid = !isFullyPaid;
       
-      // When unchecking, returns spent to 0. When checking, fills with full budget.
+      // When unchecking: resets spent to 0. When checking: fills with full budget.
       item.spent = willBePaid ? item.amount : 0;
       
       if (willBePaid) {
@@ -1232,6 +1264,7 @@
     }
 
     // Startup Initialization
+    updateSoundButtonUI();
     fetchData();
     startCountdown();
   </script>
