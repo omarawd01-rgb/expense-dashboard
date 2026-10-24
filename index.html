@@ -75,10 +75,8 @@
         </div>
       </div>
 
-      <!-- Action Toolbar -->
+      <!-- Action Toolbar (Without Countdown Text) -->
       <div class="flex items-center gap-2">
-        <span class="text-xs text-gray-500 dark:text-gray-400 font-mono hidden sm:inline mr-1" id="sync-timer-label">Next: 30s</span>
-        
         <!-- Export Actions -->
         <div class="flex items-center gap-1">
           <button onclick="exportToCSV()" class="bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 text-xs font-semibold px-2.5 py-2 rounded-lg border border-gray-200 dark:border-gray-600" title="Export CSV">
@@ -115,7 +113,7 @@
     </div>
   </header>
 
-  <!-- Main Container -->
+  <!-- Main Responsive Container -->
   <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-8">
 
     <!-- KPI Metric Cards Grid -->
@@ -310,12 +308,9 @@
       fetchData();
     }
 
-    // Modal for Adding Month
     function openAddMonthModal() {
       const modal = document.getElementById('month-modal');
       const input = document.getElementById('new-month-input');
-      
-      // Auto-suggest next month based on current selection
       input.value = suggestNextMonth(currentMonth);
       modal.classList.remove('hidden');
       modal.classList.add('flex');
@@ -886,13 +881,12 @@
       window.print();
     }
 
+    // Silent Background Auto-Sync (No Countdown Text)
     function startCountdown() {
       countdown = 30;
-      const label = document.getElementById('sync-timer-label');
       if (window.countdownInterval) clearInterval(window.countdownInterval);
       window.countdownInterval = setInterval(() => {
         countdown--;
-        if (label) label.innerText = `Next: ${countdown}s`;
         if (countdown <= 0) {
           countdown = 30;
           fetchData();
