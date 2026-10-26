@@ -290,7 +290,7 @@
     let audioCtx = null;
     let isSoundEnabled = localStorage.getItem('soundEnabled') !== 'false';
 
-    // Currency Conversion State
+    // GoogleFinance USD Rate
     let usdToEgpRate = null;
 
     function isRateLockedForMonth(month) {
@@ -300,25 +300,6 @@
     function getLockedRateData(month) {
       const data = localStorage.getItem(`lockedRate_${month}`);
       return data ? JSON.parse(data) : null;
-    }
-
-    async function fetchUsdRate() {
-      // If current month is locked, don't query live rate
-      if (isRateLockedForMonth(currentMonth)) {
-        renderIncomeTable();
-        return;
-      }
-
-      try {
-        const res = await fetch('https://open.er-api.com/v6/latest/USD');
-        const data = await res.json();
-        if (data && data.rates && data.rates.EGP) {
-          usdToEgpRate = data.rates.EGP;
-          renderIncomeTable();
-        }
-      } catch (err) {
-        console.warn('Could not fetch exchange rate:', err);
-      }
     }
 
     async function lockSalaryRate(convertedEgp, rateUsed) {
@@ -350,12 +331,12 @@
     }
 
     async function unlockSalaryRate() {
-      const confirmed = confirm(`Unlock live rate for ${currentMonth}? The salary will resume live market updates.`);
+      const confirmed = confirm(`Unlock live GoogleFinance rate for ${currentMonth}? The salary will resume live GoogleFinance updates.`);
       if (!confirmed) return;
 
       localStorage.removeItem(`lockedRate_${currentMonth}`);
-      await fetchUsdRate();
       renderIncomeTable();
+      await fetchData();
     }
 
     function sortExpenses() {
@@ -371,7 +352,6 @@
     function onMonthChange(selectedMonth) {
       currentMonth = selectedMonth;
       localStorage.setItem('currentMonth', currentMonth);
-      fetchUsdRate();
       fetchData();
     }
 
@@ -431,7 +411,6 @@
           currentMonth = newMonth;
           localStorage.setItem('currentMonth', currentMonth);
           closeAddMonthModal();
-          await fetchUsdRate();
           await fetchData();
         } else {
           alert('Could not create month: ' + (data.error || 'Unknown error'));
@@ -467,7 +446,6 @@
           localStorage.removeItem(`lockedRate_${currentMonth}`);
           currentMonth = data.currentSheet;
           localStorage.setItem('currentMonth', currentMonth);
-          await fetchUsdRate();
           await fetchData();
         } else {
           alert('Could not delete month: ' + (data.error || 'Unknown error'));
@@ -578,6 +556,11 @@
       if (data.currentSheet) {
         currentMonth = data.currentSheet;
         localStorage.setItem('currentMonth', currentMonth);
+      }
+
+      // Live GoogleFinance USD Rate from Sheet
+      if (data.usdRate && !isRateLockedForMonth(currentMonth)) {
+        usdToEgpRate = parseFloat(data.usdRate);
       }
 
       const printLabel = document.getElementById('print-month-label');
@@ -924,12 +907,12 @@
                 </div>
               `;
             } else if (usdToEgpRate) {
-              // Rate is LIVE and updating
+              // Rate is LIVE from GoogleFinance
               const liveConverted = Math.round(usdAmount * usdToEgpRate * 10) / 10;
               currencyWidgetHtml = `
                 <div class="mt-1 flex items-center gap-2 flex-wrap">
                   <span class="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-900/40 px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-800">
-                    🟢 Live: ~${liveConverted.toLocaleString()} EGP (@ ${usdToEgpRate.toFixed(2)} EGP/$)
+                    🟢 GoogleFinance: ~${liveConverted.toLocaleString()} EGP (@ ${usdToEgpRate.toFixed(2)} EGP/$)
                   </span>
                   <button onclick="lockSalaryRate(${liveConverted}, ${usdToEgpRate})" class="bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold px-2 py-0.5 rounded shadow-sm transition-colors">
                     🔒 Lock Rate & Update Sheet
@@ -1053,7 +1036,6 @@
     }
 
     updateSoundButtonUI();
-    fetchUsdRate();
     fetchData();
     startCountdown();
   </script>
