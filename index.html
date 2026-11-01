@@ -582,12 +582,15 @@
 
       allExpenses = [];
       const expRows = data.expenses || [];
-      expRows.forEach((row, idx) => {
+      expRows.forEach((row) => {
+        const status = row[0];
         const planned = parseFloat(row[1]) || 0;
         const desc = String(row[2] || '').trim();
         const spent = parseFloat(row[3]) || 0;
+        const actualRowIndex = row[4]; // Precise Google Sheet row number
+
         if (desc !== '' || planned > 0) {
-          allExpenses.push({ rowIndex: idx + 2, desc, amount: planned, spent });
+          allExpenses.push({ rowIndex: actualRowIndex, desc, amount: planned, spent });
         }
       });
 
@@ -641,7 +644,8 @@
 
       try {
         const url = `${WEB_APP_URL}?action=addExpense&sheetName=${encodeURIComponent(currentMonth)}&desc=${encodeURIComponent(desc)}&amount=${amount}&spent=${spent}&status=${spent >= amount}`;
-        await fetch(url, { mode: 'no-cors' });
+        const res = await fetch(url);
+        await res.json();
         closeAddModal();
         await fetchData();
       } catch (err) {
@@ -667,7 +671,8 @@
 
       try {
         const url = `${WEB_APP_URL}?action=addIncome&sheetName=${encodeURIComponent(currentMonth)}&source=${encodeURIComponent(source)}&amount=${amount}`;
-        await fetch(url, { mode: 'no-cors' });
+        const res = await fetch(url);
+        await res.json();
         closeIncomeModal();
         await fetchData();
       } catch (err) {
@@ -702,7 +707,8 @@
 
       try {
         const url = `${WEB_APP_URL}?action=editExpense&sheetName=${encodeURIComponent(currentMonth)}&row=${item.rowIndex}&${field}=${encodeURIComponent(value)}`;
-        await fetch(url, { mode: 'no-cors' });
+        const res = await fetch(url);
+        await res.json();
       } catch (err) {
         console.log('Optimistic edit saved locally');
       }
@@ -727,7 +733,8 @@
 
       try {
         const url = `${WEB_APP_URL}?action=editIncome&sheetName=${encodeURIComponent(currentMonth)}&row=${item.rowIndex}&${field}=${encodeURIComponent(value)}`;
-        await fetch(url, { mode: 'no-cors' });
+        const res = await fetch(url);
+        await res.json();
         await fetchData();
       } catch (err) {
         console.log('Optimistic income edit saved locally');
@@ -739,7 +746,8 @@
       if (!confirm(`Are you sure you want to delete "${item.desc}"?`)) return;
 
       try {
-        await fetch(`${WEB_APP_URL}?action=deleteExpense&sheetName=${encodeURIComponent(currentMonth)}&row=${item.rowIndex}`, { mode: 'no-cors' });
+        const res = await fetch(`${WEB_APP_URL}?action=deleteExpense&sheetName=${encodeURIComponent(currentMonth)}&row=${item.rowIndex}`);
+        await res.json();
         await fetchData();
       } catch (err) {
         allExpenses.splice(globalIndex, 1);
@@ -759,7 +767,8 @@
       if (!confirm(`Are you sure you want to delete extra income "${item.source}"?`)) return;
 
       try {
-        await fetch(`${WEB_APP_URL}?action=deleteIncome&sheetName=${encodeURIComponent(currentMonth)}&row=${item.rowIndex}`, { mode: 'no-cors' });
+        const res = await fetch(`${WEB_APP_URL}?action=deleteIncome&sheetName=${encodeURIComponent(currentMonth)}&row=${item.rowIndex}`);
+        await res.json();
         await fetchData();
       } catch (err) {
         allIncome.splice(index, 1);
@@ -773,6 +782,7 @@
       const isFullyPaid = item.spent >= item.amount && item.amount > 0;
       const willBePaid = !isFullyPaid;
       
+      const previousSpent = item.spent;
       item.spent = willBePaid ? item.amount : 0;
       if (willBePaid) playPaidSound();
 
@@ -786,9 +796,19 @@
 
       try {
         const url = `${WEB_APP_URL}?action=editExpense&sheetName=${encodeURIComponent(currentMonth)}&row=${item.rowIndex}&spent=${item.spent}&status=${willBePaid}`;
-        await fetch(url, { mode: 'no-cors' });
+        const res = await fetch(url);
+        const data = await res.json();
+        if (!data.success) {
+          throw new Error('Sync failed on Google Sheet');
+        }
       } catch (e) {
-        console.log('Status updated locally');
+        console.error('Failed to sync toggle to Google Sheet:', e);
+        // Rollback on network or sync failure
+        item.spent = previousSpent;
+        sortExpenses();
+        updateMetricsAndCharts();
+        renderTable();
+        alert('Could not update status in Google Sheet. Check connection and permissions.');
       }
     }
 
@@ -895,7 +915,6 @@
             const lockedData = getLockedRateData(currentMonth);
 
             if (lockedData) {
-              // Rate is LOCKED & stopped
               currencyWidgetHtml = `
                 <div class="mt-1 flex items-center gap-2 flex-wrap">
                   <span class="inline-flex items-center gap-1 text-[11px] font-bold text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700/60 px-2 py-0.5 rounded border border-gray-300 dark:border-gray-600">
@@ -907,7 +926,6 @@
                 </div>
               `;
             } else if (usdToEgpRate) {
-              // Rate is LIVE from GoogleFinance
               const liveConverted = Math.round(usdAmount * usdToEgpRate * 10) / 10;
               currencyWidgetHtml = `
                 <div class="mt-1 flex items-center gap-2 flex-wrap">
@@ -1009,7 +1027,6 @@
       window.print();
     }
 
-    // Silent Background Auto-Sync
     function startCountdown() {
       countdown = 30;
       if (window.countdownInterval) clearInterval(window.countdownInterval);
